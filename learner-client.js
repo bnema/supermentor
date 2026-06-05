@@ -75,6 +75,25 @@ async function api(path, options = {}) {
 	return await response.json();
 }
 
+function getErrorMessage(error) {
+	if (!(error instanceof Error)) return "La question n’a pas pu être envoyée à l’agent.";
+	const status = error.message.match(/^(\d{3})\b/)?.[1];
+	const messages = {
+		400: "La question envoyée est invalide.",
+		403: "La session d’apprentissage n’autorise pas cette action.",
+		404: "Ce fil de discussion est introuvable.",
+		502: "L’agent n’a pas pu recevoir la question.",
+		504: "L’agent n’a pas répondu à temps.",
+	};
+	return messages[status] || "La question n’a pas pu être envoyée à l’agent.";
+}
+
+function clearComposerError(composer) {
+	const errorElement = composer.querySelector(".sl-composer-error");
+	errorElement.hidden = true;
+	errorElement.textContent = "";
+}
+
 function selectedTextInside(block) {
 	const selection = window.getSelection?.();
 	if (!selection || selection.isCollapsed) return "";
@@ -165,9 +184,7 @@ function bindLessonEvents(root) {
 			const block = button.closest(".sl-block");
 			const composer = block.querySelector(".sl-composer");
 			composer.hidden = false;
-			const errorElement = composer.querySelector(".sl-composer-error");
-			errorElement.hidden = true;
-			errorElement.textContent = "";
+			clearComposerError(composer);
 			const selected = selectedTextInside(block);
 			const textarea = composer.querySelector("textarea");
 			textarea.focus();
@@ -179,9 +196,7 @@ function bindLessonEvents(root) {
 			const composer = button.closest(".sl-composer");
 			composer.hidden = true;
 			composer.querySelector("textarea").value = "";
-			const errorElement = composer.querySelector(".sl-composer-error");
-			errorElement.hidden = true;
-			errorElement.textContent = "";
+			clearComposerError(composer);
 		});
 	});
 	root.querySelectorAll(".sl-composer [data-action='submit']").forEach((button) => {
@@ -193,9 +208,7 @@ function bindLessonEvents(root) {
 			if (!question) return;
 			button.disabled = true;
 			try {
-				const errorElement = composer.querySelector(".sl-composer-error");
-				errorElement.hidden = true;
-				errorElement.textContent = "";
+				clearComposerError(composer);
 				const blockId = block.dataset.blockId;
 				const lessonBlock = (currentLesson.blocks || []).find((item) => (item.id || "") === blockId) || {};
 				const selection = selectedTextInside(block) || "";
@@ -220,7 +233,7 @@ function bindLessonEvents(root) {
 				renderLesson();
 				startThreadPolling(result.threadId);
 			} catch (error) {
-				const message = error instanceof Error ? error.message : "La question n’a pas pu être envoyée à l’agent.";
+				const message = getErrorMessage(error);
 				const errorElement = composer.querySelector(".sl-composer-error");
 				errorElement.textContent = message;
 				errorElement.hidden = false;

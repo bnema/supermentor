@@ -36,7 +36,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "^0.78.0"
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {
@@ -44,7 +44,7 @@
     }
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "^0.78.0"
   },
   "exports": {
     "./server.cjs": "./server.cjs",
