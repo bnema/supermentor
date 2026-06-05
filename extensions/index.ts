@@ -21,12 +21,14 @@ type Started = {
 export default function superlearnerExtension(pi: ExtensionAPI) {
 	let child: Child | null = null;
 	let started: Started | null = null;
+	let startedUrl: string | null = null;
 	let stdoutBuffer = "";
 
 	function stopServer() {
 		if (child && !child.killed) child.kill();
 		child = null;
 		started = null;
+		startedUrl = null;
 		stdoutBuffer = "";
 	}
 
@@ -62,8 +64,8 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 	pi.registerCommand("superlearner-start", {
 		description: "Start the superlearner browser companion (usage: /superlearner-start [title])",
 		handler: async (args, ctx) => {
-			if (child && !child.killed && started) {
-				ctx.ui.notify(`superlearner already running: ${buildPiSuperlearnerUrl(started)}`, "info");
+			if (child && !child.killed && started && startedUrl) {
+				ctx.ui.notify(`superlearner already running: ${startedUrl}`, "info");
 				return;
 			}
 
@@ -90,12 +92,23 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 				if (child === current) {
 					child = null;
 					started = null;
+					startedUrl = null;
 				}
 				if (code && code !== 0) ctx.ui.notify(`superlearner exited (${code}${signal ? ` ${signal}` : ""}) ${stderr}`.trim(), "warning");
 			});
 
-			started = (await waitForServerStarted(current)) as Started;
+			try {
+				started = (await waitForServerStarted(current)) as Started;
+			} catch (error) {
+				if (child === current) stopServer();
+				const message = error instanceof Error ? error.message : "superlearner failed to start";
+				const details = stderr.trim() ? `: ${stderr.trim().split("\n").at(-1)}` : "";
+				ctx.ui.notify(`${message}${details}`, "error");
+				return;
+			}
+
 			const url = buildPiSuperlearnerUrl(started);
+			startedUrl = url;
 			ctx.ui.notify(`superlearner ready: ${url}`, "info");
 			pi.appendEntry("superlearner-session", { ...started, url, title });
 			pi.sendMessage({
@@ -119,7 +132,7 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 				ctx.ui.notify("No superlearner server is running", "warning");
 				return;
 			}
-			ctx.ui.notify(`superlearner: ${buildPiSuperlearnerUrl(started)} (${started.sessionDir})`, "info");
+			ctx.ui.notify(`superlearner: ${startedUrl} (${started.sessionDir})`, "info");
 		},
 	});
 

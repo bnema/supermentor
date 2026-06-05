@@ -7,6 +7,7 @@ const readline = require("node:readline");
 
 const token = crypto.randomBytes(16).toString("hex");
 const idleTimeoutMs = Number.parseInt(process.env.SUPERLEARNER_IDLE_TIMEOUT_MS || "3600000", 10);
+const ackTimeoutMs = Number.parseInt(process.env.SUPERLEARNER_ACK_TIMEOUT_MS || "15000", 10);
 const submitBodyLimit = 128 * 1024;
 const staticAssetCache = new Map();
 const pendingAcks = new Map();
@@ -216,8 +217,8 @@ function registerAck(requestId) {
 	return new Promise((resolve, reject) => {
 		const timeout = setTimeout(() => {
 			pendingAcks.delete(requestId);
-			reject(new Error(`superlearner launcher ack timeout after ${idleTimeoutMs}ms`));
-		}, idleTimeoutMs);
+			reject(new Error(`superlearner launcher ack timeout after ${ackTimeoutMs}ms`));
+		}, ackTimeoutMs);
 		pendingAcks.set(requestId, { resolve, reject, timeout });
 	});
 }
@@ -250,16 +251,10 @@ async function handleApi(req, res, url) {
 		sendJson(res, 200, readJson(lessonFile, defaultLesson()));
 		return;
 	}
-	if (req.method === "POST" && url.pathname === "/api/lesson") {
-		const lesson = await readJsonBody(req);
-		writeJson(lessonFile, { kind: "learning-document", version: 1, sessionId, ...lesson });
-		appendEvent({ type: "lesson-updated" });
-		sendJson(res, 200, { ok: true });
-		return;
-	}
 	if (req.method === "POST" && url.pathname === "/api/inline-question") {
 		const payload = await readJsonBody(req);
 		const created = createInlineQuestion(payload);
+		const ackPromise = registerAck(created.requestId);
 		const event = {
 			type: "inline-question",
 			requestId: created.requestId,
@@ -269,7 +264,26 @@ async function handleApi(req, res, url) {
 			},
 		};
 		process.stdout.write(`${JSON.stringify(event)}\n`);
-		sendJson(res, 202, { ok: true, requestId: created.requestId, threadId: created.threadId, replyPath: created.replyPath });
+
+		let ack;
+		try {
+			ack = await ackPromise;
+		} catch (error) {
+			sendJson(res, 504, {
+				ok: false,
+				error: error instanceof Error ? error.message : "inline question delivery timed out",
+				requestId: created.requestId,
+				threadId: created.threadId,
+			});
+			return;
+		}
+
+		if (!ack.ok) {
+			sendJson(res, 502, { ok: false, error: ack.error || "inline question delivery failed", requestId: created.requestId, threadId: created.threadId });
+			return;
+		}
+
+		sendJson(res, 202, { ok: true, delivered: true, message: ack.message, requestId: created.requestId, threadId: created.threadId, replyPath: created.replyPath });
 		return;
 	}
 	const threadMatch = url.pathname.match(/^\/api\/threads\/([^/]+)$/);
@@ -335,10 +349,21 @@ submissionReader.on("close", () => {
 	}
 });
 
+function requireLoopbackHost(host) {
+	const allowed = new Set(["127.0.0.1", "localhost", "::1"]);
+	if (allowed.has(host)) return host;
+	process.stderr.write(`SUPERLEARNER_HOST must be loopback-only (127.0.0.1, localhost, or ::1), got: ${host}\n`);
+	process.exit(1);
+}
+
+function formatUrlHost(host) {
+	return host === "::1" ? "[::1]" : host;
+}
+
 function startServer() {
 	ensureSessionStore();
 	server = http.createServer(handleRequest);
-	const host = process.env.SUPERLEARNER_HOST || "127.0.0.1";
+	const host = requireLoopbackHost(process.env.SUPERLEARNER_HOST || "127.0.0.1");
 	const port = Number.parseInt(process.env.SUPERLEARNER_PORT || "0", 10);
 	const lifecycleCheck = setInterval(() => {
 		if (Date.now() - lastActivityAt > idleTimeoutMs) closeServer("idle timeout");
@@ -347,7 +372,7 @@ function startServer() {
 	server.listen(port, host, () => {
 		const address = server.address();
 		const actualPort = typeof address === "object" && address ? address.port : port;
-		const url = `http://${host}:${actualPort}/`;
+		const url = `http://${formatUrlHost(host)}:${actualPort}/`;
 		const started = { type: "server-started", port: actualPort, host, url, token, sessionId, sessionDir };
 		writeJson(path.join(sessionDir, "server.json"), started);
 		appendEvent({ type: "server-started", port: actualPort, host, url });

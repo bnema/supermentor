@@ -27,12 +27,13 @@
     "extensions",
     "lib",
     "docs",
+    "scripts",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
     "test": "node --test adapters.test.js",
-    "smoke": "node server.cjs --help >/dev/null || true"
+    "smoke": "node scripts/smoke.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

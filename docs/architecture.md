@@ -67,6 +67,14 @@ browser comment
 
 The question enters the main agent context through the adapter so it can use the ongoing conversation, codebase context, and loaded skills. The answer body does not become the main chat response; it lives in `reply.json` and the browser.
 
+## Security model
+
+The server is loopback-only. `SUPERLEARNER_HOST` may be `127.0.0.1`, `localhost`, or `::1`; non-loopback values are rejected at startup. This is intentional because the initial HTML page embeds a random per-server token used for browser API calls.
+
+The browser can read session and lesson data and submit inline questions. It cannot overwrite `lesson.json` through HTTP; agents update lessons by writing the session file directly.
+
+Inline question submission waits for a short launcher acknowledgement before telling the browser the question was delivered to the active agent session.
+
 ## Storage
 
 Sessions are outside the current repository:

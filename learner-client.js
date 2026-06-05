@@ -209,6 +209,10 @@ function bindLessonEvents(root) {
 				textarea.value = "";
 				renderLesson();
 				startThreadPolling(result.threadId);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "La question n’a pas pu être envoyée à l’agent.";
+				composer.querySelector("textarea").focus();
+				alert(`Superlearner: ${message}`);
 			} finally {
 				button.disabled = false;
 			}
