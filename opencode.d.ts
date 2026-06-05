@@ -1,41 +1,15 @@
-import type { ChildProcessWithoutNullStreams } from "node:child_process";
-import type {
-  ResolveBaseRefInput,
-  ReviewAck,
-  ServerStartedEvent,
-  SpawnReviewServerOptions,
-} from "./client-shared.js";
+import type { ChildProcess } from "node:child_process";
+import type { SpawnSuperlearnerOptions, SuperlearnerStartedEvent } from "./client-shared.js";
 
-export { formatReviewPrompt } from "./review-prompt.js";
-export declare function resolveBaseRef(input: ResolveBaseRefInput): string;
-export declare function waitForServerStarted(
-  child: ChildProcessWithoutNullStreams,
-): Promise<ServerStartedEvent>;
+export interface OpencodeSuperlearnerArgs extends SpawnSuperlearnerOptions {
+	sessionID?: string;
+	title?: string;
+	sessionDir?: string;
+	cacheDir?: string;
+}
 
-export type OpenCodeAdapterArgs = {
-  cwd: string;
-  sessionID: string;
-  baseRef?: string | null;
-  serverPath?: string;
-};
-
-export type OpenCodeReviewUrlArgs = {
-  sessionID: string;
-  baseRef?: string | null;
-};
-
-export declare function openCodeReviewServerOptions(
-  args: OpenCodeAdapterArgs,
-): SpawnReviewServerOptions;
-export declare function spawnOpenCodeReviewServer(
-  args: OpenCodeAdapterArgs,
-): ChildProcessWithoutNullStreams;
-export declare function buildOpenCodeReviewUrl(
-  started: Partial<ServerStartedEvent> | null | undefined,
-  args: OpenCodeReviewUrlArgs,
-): string;
-export declare function writeOpenCodeReviewAck(
-  child: ChildProcessWithoutNullStreams,
-  requestId: string,
-  ack: ReviewAck,
-): void;
+export function waitForServerStarted(child: ChildProcess): Promise<SuperlearnerStartedEvent>;
+export function opencodeSuperlearnerServerOptions(args?: OpencodeSuperlearnerArgs): SpawnSuperlearnerOptions;
+export function spawnOpencodeSuperlearnerServer(args?: OpencodeSuperlearnerArgs): ChildProcess;
+export function buildOpencodeSuperlearnerUrl(started: SuperlearnerStartedEvent, args?: OpencodeSuperlearnerArgs): string;
+export function writeOpencodeSuperlearnerAck(child: ChildProcess, requestId: string, ack: { ok: true; message?: string } | { ok: false; error: string }): void;
