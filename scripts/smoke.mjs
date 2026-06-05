@@ -35,7 +35,12 @@ child.stdout.on("data", async (chunk) => {
 	const lines = stdout.split("\n");
 	for (const line of lines) {
 		if (!line.trim().startsWith("{")) continue;
-		const event = JSON.parse(line);
+		let event;
+		try {
+			event = JSON.parse(line);
+		} catch {
+			continue;
+		}
 		if (event.type === "server-started") {
 			void runSmoke(event).catch((error) => finish(1, error?.stack || String(error)));
 			return;
@@ -81,7 +86,12 @@ function waitForInlineQuestion() {
 		const scan = () => {
 			for (const line of buffer.split("\n")) {
 				if (!line.trim().startsWith("{")) continue;
-				const event = JSON.parse(line);
+				let event;
+				try {
+					event = JSON.parse(line);
+				} catch {
+					continue;
+				}
 				if (event.type === "inline-question") return event;
 			}
 			return null;

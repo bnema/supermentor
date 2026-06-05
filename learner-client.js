@@ -128,6 +128,7 @@ function renderBlock(block, index) {
 		<div class="sl-block-body">${body}</div>
 		<div class="sl-composer" hidden>
 			<label>Ta question sur ce passage</label>
+			<div class="sl-composer-error" role="alert" hidden></div>
 			<textarea rows="4" placeholder="Dis-moi ce qui est flou, ce que tu veux voir déroulé, ou demande un exemple…"></textarea>
 			<div class="sl-composer-actions"><button type="button" data-action="cancel">Annuler</button><button type="button" data-action="submit">Envoyer</button></div>
 		</div>
@@ -164,6 +165,9 @@ function bindLessonEvents(root) {
 			const block = button.closest(".sl-block");
 			const composer = block.querySelector(".sl-composer");
 			composer.hidden = false;
+			const error = composer.querySelector(".sl-composer-error");
+			error.hidden = true;
+			error.textContent = "";
 			const selected = selectedTextInside(block);
 			const textarea = composer.querySelector("textarea");
 			textarea.focus();
@@ -175,6 +179,9 @@ function bindLessonEvents(root) {
 			const composer = button.closest(".sl-composer");
 			composer.hidden = true;
 			composer.querySelector("textarea").value = "";
+			const error = composer.querySelector(".sl-composer-error");
+			error.hidden = true;
+			error.textContent = "";
 		});
 	});
 	root.querySelectorAll(".sl-composer [data-action='submit']").forEach((button) => {
@@ -186,6 +193,9 @@ function bindLessonEvents(root) {
 			if (!question) return;
 			button.disabled = true;
 			try {
+				const error = composer.querySelector(".sl-composer-error");
+				error.hidden = true;
+				error.textContent = "";
 				const blockId = block.dataset.blockId;
 				const lessonBlock = (currentLesson.blocks || []).find((item) => (item.id || "") === blockId) || {};
 				const selection = selectedTextInside(block) || "";
@@ -211,8 +221,11 @@ function bindLessonEvents(root) {
 				startThreadPolling(result.threadId);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : "La question n’a pas pu être envoyée à l’agent.";
+				const errorElement = composer.querySelector(".sl-composer-error");
+				errorElement.textContent = message;
+				errorElement.hidden = false;
+				errorElement.scrollIntoView({ block: "nearest" });
 				composer.querySelector("textarea").focus();
-				alert(`Superlearner: ${message}`);
 			} finally {
 				button.disabled = false;
 			}

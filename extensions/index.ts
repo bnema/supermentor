@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { SuperlearnerStartedEvent } from "../client-shared.js";
 import { formatInlineQuestionPrompt } from "../learner-prompt.js";
 import {
 	buildPiSuperlearnerUrl,
@@ -9,14 +10,7 @@ import {
 
 type Child = ReturnType<typeof spawnPiSuperlearnerServer>;
 
-type Started = {
-	type: "server-started";
-	url: string;
-	port: number;
-	token: string;
-	sessionId: string;
-	sessionDir: string;
-};
+type Started = SuperlearnerStartedEvent;
 
 export default function superlearnerExtension(pi: ExtensionAPI) {
 	let child: Child | null = null;
