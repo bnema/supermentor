@@ -34,6 +34,14 @@
     "test": "node --test adapters.test.js",
     "smoke": "node server.cjs --help >/dev/null || true"
   },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    }
+  },
   "exports": {
     "./server.cjs": "./server.cjs",
     "./client-shared.js": {
