@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>superlearner</title>
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem("superlearner:theme")
+          const theme = saved === "dark" || saved === "light"
+            ? saved
+            : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          document.documentElement.dataset.theme = theme
+          document.documentElement.style.colorScheme = theme
+        } catch {}
+      })()
+    </script>
+    <link rel="stylesheet" href="/learner-styles.css">
+  </head>
+  <body>
+    <aside id="lesson-outline"></aside>
+    <main>
+      <header class="sl-topbar">
+        <div>
+          <p class="sl-eyebrow">superlearner</p>
+          <h1 id="lesson-title">Chargement…</h1>
+        </div>
+        <div class="sl-actions">
+          <button id="theme-toggle" type="button">Thème</button>
+          <button id="refresh" type="button">Rafraîchir</button>
+        </div>
+      </header>
+      <section id="lesson-view"></section>
+    </main>
+    <script id="superlearner-bootstrap" type="application/json">{{BOOTSTRAP_JSON}}</script>
+    <script type="module" src="/learner-client.js"></script>
+  </body>
+</html>

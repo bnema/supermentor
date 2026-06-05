@@ -1,0 +1,61 @@
+{
+  "name": "superlearner",
+  "version": "0.1.0",
+  "description": "Adaptive learning skills and a local browser companion for coding agents",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/bnema/superlearner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bnema/superlearner.git"
+  },
+  "keywords": [
+    "pi-package",
+    "learning",
+    "coding-agent",
+    "skills",
+    "browser",
+    "tutoring"
+  ],
+  "files": [
+    "*.js",
+    "*.cjs",
+    "*.css",
+    "*.html",
+    "*.d.ts",
+    "skills",
+    "extensions",
+    "lib",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test adapters.test.js",
+    "smoke": "node server.cjs --help >/dev/null || true"
+  },
+  "exports": {
+    "./server.cjs": "./server.cjs",
+    "./client-shared.js": {
+      "types": "./client-shared.d.ts",
+      "default": "./client-shared.js"
+    },
+    "./pi.js": {
+      "types": "./pi.d.ts",
+      "default": "./pi.js"
+    },
+    "./opencode.js": {
+      "types": "./opencode.d.ts",
+      "default": "./opencode.js"
+    },
+    "./learner-prompt.js": "./learner-prompt.js"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ],
+    "extensions": [
+      "./extensions"
+    ]
+  }
+}
