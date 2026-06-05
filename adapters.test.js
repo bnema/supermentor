@@ -1,10 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import {
 	buildSuperlearnerUrl,
 	parseServerEventLine,
+	spawnSuperlearnerServer,
 	waitForServerStarted,
 	writeSuperlearnerAck,
 } from "./client-shared.js";
@@ -19,6 +24,54 @@ import {
 	writePiSuperlearnerAck,
 } from "./pi.js";
 import { formatInlineQuestionPrompt } from "./learner-prompt.js";
+
+async function startTestServer(env = {}) {
+	const cache = fs.mkdtempSync(path.join(os.tmpdir(), "superlearner-test-"));
+	const child = spawnSuperlearnerServer({
+		cwd: process.cwd(),
+		env: {
+			SUPERLEARNER_CACHE_DIR: cache,
+			SUPERLEARNER_ACK_TIMEOUT_MS: "100",
+			...env,
+		},
+	});
+	const started = await waitForServerStarted(child);
+	return {
+		child,
+		started,
+		cache,
+		async close() {
+			if (!child.killed) child.kill();
+			fs.rmSync(cache, { recursive: true, force: true });
+		},
+	};
+}
+
+async function readJsonResponse(response) {
+	return { status: response.status, body: await response.json() };
+}
+
+function waitForInlineEvent(child) {
+	return new Promise((resolve, reject) => {
+		let buffer = "";
+		const onData = (chunk) => {
+			buffer += chunk.toString();
+			for (const line of buffer.split("\n")) {
+				const event = parseServerEventLine(line.trim());
+				if (event?.type === "inline-question") {
+					child.stdout.off("data", onData);
+					resolve(event);
+					return;
+				}
+			}
+		};
+		child.stdout.on("data", onData);
+		setTimeout(() => {
+			child.stdout.off("data", onData);
+			reject(new Error("inline event timeout"));
+		}, 1000).unref();
+	});
+}
 
 test("shared URL builder preserves existing URL and adds params", () => {
 	const url = buildSuperlearnerUrl(
@@ -99,4 +152,106 @@ test("inline question prompt points the agent at question and reply files", () =
 	assert.match(prompt, /Read question JSON: \/tmp\/q\.json/);
 	assert.match(prompt, /Write reply JSON: \/tmp\/r\.json/);
 	assert.match(prompt, /Réponse envoyée au commentaire thr_1/);
+});
+
+test("server rejects non-loopback hosts", async () => {
+	const child = spawn(process.execPath, ["server.cjs"], {
+		cwd: process.cwd(),
+		env: { ...process.env, SUPERLEARNER_HOST: "0.0.0.0" },
+		stdio: ["ignore", "ignore", "pipe"],
+	});
+	let stderr = "";
+	child.stderr.on("data", (chunk) => {
+		stderr += chunk.toString();
+	});
+	const code = await new Promise((resolve) => child.once("exit", resolve));
+	assert.equal(code, 1);
+	assert.match(stderr, /loopback-only/);
+});
+
+test("server rejects API requests without the bootstrap token", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/session`));
+		assert.equal(result.status, 403);
+		assert.equal(result.body.error, "invalid token");
+	} finally {
+		await server.close();
+	}
+});
+
+test("server reports malformed JSON as a bad request", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/inline-question`, {
+			method: "POST",
+			headers: { "x-superlearner-token": server.started.token, "content-type": "application/json" },
+			body: "{not json",
+		}));
+		assert.equal(result.status, 400);
+		assert.equal(result.body.error, "invalid JSON body");
+	} finally {
+		await server.close();
+	}
+});
+
+test("inline question timeout returns 504 and removes the failed thread", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/inline-question`, {
+			method: "POST",
+			headers: { "x-superlearner-token": server.started.token, "content-type": "application/json" },
+			body: JSON.stringify({ blockId: "welcome", question: "Pourquoi ?" }),
+		}));
+		assert.equal(result.status, 504);
+		const session = await fetch(`${server.started.url}api/session`, { headers: { "x-superlearner-token": server.started.token } }).then((response) => response.json());
+		assert.equal(session.threads.length, 0);
+	} finally {
+		await server.close();
+	}
+});
+
+test("inline question failed ack returns 502 and removes the failed thread", async () => {
+	const server = await startTestServer();
+	try {
+		const submitted = fetch(`${server.started.url}api/inline-question`, {
+			method: "POST",
+			headers: { "x-superlearner-token": server.started.token, "content-type": "application/json" },
+			body: JSON.stringify({ blockId: "welcome", question: "Pourquoi ?" }),
+		});
+		const event = await waitForInlineEvent(server.child);
+		server.child.stdin.write(`${JSON.stringify({ type: "superlearner-ack", requestId: event.requestId, ok: false, error: "not delivered" })}\n`);
+		const result = await readJsonResponse(await submitted);
+		assert.equal(result.status, 502);
+		assert.equal(result.body.error, "not delivered");
+		const session = await fetch(`${server.started.url}api/session`, { headers: { "x-superlearner-token": server.started.token } }).then((response) => response.json());
+		assert.equal(session.threads.length, 0);
+	} finally {
+		await server.close();
+	}
+});
+
+test("thread endpoint returns 404 for unknown thread", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/threads/missing`, { headers: { "x-superlearner-token": server.started.token } }));
+		assert.equal(result.status, 404);
+		assert.equal(result.body.error, "thread not found");
+	} finally {
+		await server.close();
+	}
+});
+
+test("shutdown endpoint returns ok", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/shutdown`, {
+			method: "POST",
+			headers: { "x-superlearner-token": server.started.token },
+		}));
+		assert.equal(result.status, 200);
+		assert.equal(result.body.ok, true);
+	} finally {
+		await server.close();
+	}
 });

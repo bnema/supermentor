@@ -142,7 +142,13 @@ function readBody(req, limit) {
 async function readJsonBody(req) {
 	const body = await readBody(req, submitBodyLimit);
 	if (!body.trim()) return {};
-	return JSON.parse(body);
+	try {
+		return JSON.parse(body);
+	} catch {
+		const error = new Error("invalid JSON body");
+		error.statusCode = 400;
+		throw error;
+	}
 }
 
 function sendJson(res, statusCode, payload) {
@@ -210,7 +216,14 @@ function createInlineQuestion(payload) {
 	if (!question.question) throw new Error("question is required");
 	writeJson(questionPath, question);
 	appendEvent({ type: "inline-question-created", requestId, threadId, blockId: question.blockId });
-	return { requestId, threadId, question, questionPath, replyPath };
+	return { requestId, threadId, threadDir, question, questionPath, replyPath };
+}
+
+function removeThread(created, reason) {
+	try {
+		fs.rmSync(created.threadDir, { recursive: true, force: true });
+	} catch {}
+	appendEvent({ type: "inline-question-removed", requestId: created.requestId, threadId: created.threadId, reason });
 }
 
 function registerAck(requestId) {
@@ -263,12 +276,19 @@ async function handleApi(req, res, url) {
 				instruction: `Read ${created.questionPath}. Write the answer JSON to ${created.replyPath}. Keep the main chat compact after writing the file.`,
 			},
 		};
-		process.stdout.write(`${JSON.stringify(event)}\n`);
+		try {
+			process.stdout.write(`${JSON.stringify(event)}\n`);
+		} catch (error) {
+			removeThread(created, "stdout write failed");
+			sendJson(res, 500, { ok: false, error: error instanceof Error ? error.message : "inline question delivery failed", requestId: created.requestId });
+			return;
+		}
 
 		let ack;
 		try {
 			ack = await ackPromise;
 		} catch (error) {
+			removeThread(created, "ack timeout");
 			sendJson(res, 504, {
 				ok: false,
 				error: error instanceof Error ? error.message : "inline question delivery timed out",
@@ -279,6 +299,7 @@ async function handleApi(req, res, url) {
 		}
 
 		if (!ack.ok) {
+			removeThread(created, "ack failed");
 			sendJson(res, 502, { ok: false, error: ack.error || "inline question delivery failed", requestId: created.requestId, threadId: created.threadId });
 			return;
 		}
@@ -306,7 +327,8 @@ function handleRequest(req, res) {
 	touchActivity();
 	const url = parseRequestUrl(req);
 	handleRequestAsync(req, res, url).catch((error) => {
-		sendJson(res, 500, { error: error instanceof Error ? error.message : "internal error" });
+		const statusCode = Number(error?.statusCode) || 500;
+		sendJson(res, statusCode, { error: error instanceof Error ? error.message : "internal error" });
 	});
 }
 
@@ -350,9 +372,9 @@ submissionReader.on("close", () => {
 });
 
 function requireLoopbackHost(host) {
-	const allowed = new Set(["127.0.0.1", "localhost", "::1"]);
+	const allowed = new Set(["127.0.0.1", "::1"]);
 	if (allowed.has(host)) return host;
-	process.stderr.write(`SUPERLEARNER_HOST must be loopback-only (127.0.0.1, localhost, or ::1), got: ${host}\n`);
+	process.stderr.write(`SUPERLEARNER_HOST must be loopback-only (127.0.0.1 or ::1), got: ${host}\n`);
 	process.exit(1);
 }
 

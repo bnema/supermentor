@@ -3,10 +3,12 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const cache = fs.mkdtempSync(path.join(os.tmpdir(), "superlearner-smoke-"));
+let smokeStarted = false;
 const child = spawn(process.execPath, ["server.cjs"], {
-	cwd: new URL("..", import.meta.url),
+	cwd: fileURLToPath(new URL("..", import.meta.url)),
 	env: {
 		...process.env,
 		SUPERLEARNER_CACHE_DIR: cache,
@@ -24,6 +26,7 @@ function finish(code, message) {
 	done = true;
 	clearTimeout(timeout);
 	if (!child.killed) child.kill();
+	fs.rmSync(cache, { recursive: true, force: true });
 	if (message) console[code ? "error" : "log"](message);
 	process.exit(code);
 }
@@ -41,7 +44,8 @@ child.stdout.on("data", async (chunk) => {
 		} catch {
 			continue;
 		}
-		if (event.type === "server-started") {
+		if (event.type === "server-started" && !smokeStarted) {
+			smokeStarted = true;
 			void runSmoke(event).catch((error) => finish(1, error?.stack || String(error)));
 			return;
 		}

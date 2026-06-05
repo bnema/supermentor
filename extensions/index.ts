@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { parseServerEventLine } from "../client-shared.js";
 import type { SuperlearnerStartedEvent } from "../client-shared.js";
 import { formatInlineQuestionPrompt } from "../learner-prompt.js";
 import {
@@ -26,19 +27,13 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 		stdoutBuffer = "";
 	}
 
-	function handleStdoutLine(line: string) {
-		let event: any;
-		try {
-			event = JSON.parse(line);
-		} catch {
-			return;
-		}
-
+	async function handleStdoutLine(line: string) {
+		const event = parseServerEventLine(line) as any;
 		if (event?.type !== "inline-question" || !event.requestId) return;
 
 		const prompt = formatInlineQuestionPrompt(event.payload);
 		try {
-			pi.sendUserMessage(prompt, { deliverAs: "followUp" });
+			await Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" }));
 			if (child) {
 				writePiSuperlearnerAck(child, event.requestId, {
 					ok: true,
@@ -58,8 +53,8 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 	pi.registerCommand("superlearner-start", {
 		description: "Start the superlearner browser companion (usage: /superlearner-start [title])",
 		handler: async (args, ctx) => {
-			if (child && !child.killed && started && startedUrl) {
-				ctx.ui.notify(`superlearner already running: ${startedUrl}`, "info");
+			if (child && !child.killed) {
+				ctx.ui.notify(startedUrl ? `superlearner already running: ${startedUrl}` : "superlearner is already starting", "info");
 				return;
 			}
 
@@ -73,7 +68,7 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 				while (newlineIndex !== -1) {
 					const line = stdoutBuffer.slice(0, newlineIndex).trim();
 					stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
-					if (line) handleStdoutLine(line);
+					if (line) void handleStdoutLine(line);
 					newlineIndex = stdoutBuffer.indexOf("\n");
 				}
 			});

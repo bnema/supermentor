@@ -42,6 +42,13 @@ export function formatInlineQuestionPrompt(eventPayload) {
 	return lines.join("\n");
 }
 
+/**
+ * Generate a Markdown code fence that safely wraps text.
+ * Computes a fence longer than any backtick run; language is optional.
+ * @param {unknown} text
+ * @param {string} [language=""]
+ * @returns {string}
+ */
 function fence(text, language = "") {
 	const runs = String(text).match(/`+/g)?.map((run) => run.length) || [0];
 	const maxBacktickRun = Math.max(0, ...runs);

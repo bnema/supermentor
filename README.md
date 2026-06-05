@@ -99,7 +99,7 @@ Start the server manually:
 node server.cjs
 ```
 
-The server prints a `server-started` JSON event containing the URL, session id, session directory, and token. It is intentionally loopback-only (`127.0.0.1`, `localhost`, or `::1`) because the initial HTML page embeds the API token needed by the browser.
+The server prints a `server-started` JSON event containing the URL, session id, session directory, and token. It is intentionally loopback-only (`127.0.0.1` or `::1`) because the initial HTML page embeds the API token needed by the browser.
 
 ## License
 

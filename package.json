@@ -43,6 +43,9 @@
       "optional": true
     }
   },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
   "exports": {
     "./server.cjs": "./server.cjs",
     "./client-shared.js": {
