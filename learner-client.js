@@ -165,9 +165,9 @@ function bindLessonEvents(root) {
 			const block = button.closest(".sl-block");
 			const composer = block.querySelector(".sl-composer");
 			composer.hidden = false;
-			const error = composer.querySelector(".sl-composer-error");
-			error.hidden = true;
-			error.textContent = "";
+			const errorElement = composer.querySelector(".sl-composer-error");
+			errorElement.hidden = true;
+			errorElement.textContent = "";
 			const selected = selectedTextInside(block);
 			const textarea = composer.querySelector("textarea");
 			textarea.focus();
@@ -179,9 +179,9 @@ function bindLessonEvents(root) {
 			const composer = button.closest(".sl-composer");
 			composer.hidden = true;
 			composer.querySelector("textarea").value = "";
-			const error = composer.querySelector(".sl-composer-error");
-			error.hidden = true;
-			error.textContent = "";
+			const errorElement = composer.querySelector(".sl-composer-error");
+			errorElement.hidden = true;
+			errorElement.textContent = "";
 		});
 	});
 	root.querySelectorAll(".sl-composer [data-action='submit']").forEach((button) => {
@@ -193,9 +193,9 @@ function bindLessonEvents(root) {
 			if (!question) return;
 			button.disabled = true;
 			try {
-				const error = composer.querySelector(".sl-composer-error");
-				error.hidden = true;
-				error.textContent = "";
+				const errorElement = composer.querySelector(".sl-composer-error");
+				errorElement.hidden = true;
+				errorElement.textContent = "";
 				const blockId = block.dataset.blockId;
 				const lessonBlock = (currentLesson.blocks || []).find((item) => (item.id || "") === blockId) || {};
 				const selection = selectedTextInside(block) || "";

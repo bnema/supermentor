@@ -36,6 +36,7 @@ child.stderr.on("data", (chunk) => process.stderr.write(chunk));
 child.stdout.on("data", async (chunk) => {
 	stdout += chunk.toString();
 	const lines = stdout.split("\n");
+	stdout = lines.pop() || "";
 	for (const line of lines) {
 		if (!line.trim().startsWith("{")) continue;
 		let event;
@@ -88,7 +89,9 @@ function waitForInlineQuestion() {
 	return new Promise((resolve, reject) => {
 		let buffer = stdout;
 		const scan = () => {
-			for (const line of buffer.split("\n")) {
+			const lines = buffer.split("\n");
+			buffer = lines.pop() || "";
+			for (const line of lines) {
 				if (!line.trim().startsWith("{")) continue;
 				let event;
 				try {

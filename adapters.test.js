@@ -56,7 +56,9 @@ function waitForInlineEvent(child) {
 		let buffer = "";
 		const onData = (chunk) => {
 			buffer += chunk.toString();
-			for (const line of buffer.split("\n")) {
+			const lines = buffer.split("\n");
+			buffer = lines.pop() || "";
+			for (const line of lines) {
 				const event = parseServerEventLine(line.trim());
 				if (event?.type === "inline-question") {
 					child.stdout.off("data", onData);

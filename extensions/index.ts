@@ -13,6 +13,21 @@ type Child = ReturnType<typeof spawnPiSuperlearnerServer>;
 
 type Started = SuperlearnerStartedEvent;
 
+type InlineQuestionEvent = {
+	type: "inline-question";
+	requestId: string;
+	payload: unknown;
+};
+
+function isInlineQuestionEvent(event: unknown): event is InlineQuestionEvent {
+	return (
+		typeof event === "object" &&
+		event !== null &&
+		(event as { type?: unknown }).type === "inline-question" &&
+		typeof (event as { requestId?: unknown }).requestId === "string"
+	);
+}
+
 export default function superlearnerExtension(pi: ExtensionAPI) {
 	let child: Child | null = null;
 	let started: Started | null = null;
@@ -28,8 +43,8 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 	}
 
 	async function handleStdoutLine(line: string) {
-		const event = parseServerEventLine(line) as any;
-		if (event?.type !== "inline-question" || !event.requestId) return;
+		const event = parseServerEventLine(line);
+		if (!isInlineQuestionEvent(event)) return;
 
 		const prompt = formatInlineQuestionPrompt(event.payload);
 		try {
@@ -128,8 +143,9 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 	pi.registerCommand("superlearner-stop", {
 		description: "Stop the current superlearner browser companion",
 		handler: async (_args, ctx) => {
+			const wasRunning = Boolean(child && !child.killed);
 			stopServer();
-			ctx.ui.notify("superlearner stopped", "info");
+			ctx.ui.notify(wasRunning ? "superlearner stopped" : "No superlearner server was running", wasRunning ? "info" : "warning");
 		},
 	});
 
