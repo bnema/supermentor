@@ -346,7 +346,28 @@ function blockElementForComposer(button) {
 	return button.closest("[data-block-id]");
 }
 
+function setActiveContent(element) {
+	document.querySelectorAll(".is-active-content").forEach((item) => item.classList.remove("is-active-content"));
+	if (!element?.id) return;
+	element.classList.add("is-active-content");
+	setActiveOutlineItem(element.id);
+}
+
+function closestElement(target, selector) {
+	const element = target instanceof Element ? target : target?.parentElement;
+	return element?.closest(selector) || null;
+}
+
+function isInteractiveClick(target) {
+	return Boolean(closestElement(target, "button, a, textarea, input, select, label, .sm-composer"));
+}
+
 function bindLessonEvents(root) {
+	root.addEventListener("click", (event) => {
+		if (isInteractiveClick(event.target)) return;
+		const target = closestElement(event.target, ".sm-subblock[id], .sm-section-lead[id], .sm-section[id]");
+		if (target && root.contains(target)) setActiveContent(target);
+	});
 	root.querySelectorAll(".sm-comment-button").forEach((button) => {
 		button.addEventListener("click", () => {
 			const block = blockElementForComposer(button);
@@ -434,13 +455,32 @@ async function loadSession() {
 	for (const thread of currentThreads) if (!thread.reply) startThreadPolling(thread.threadId);
 }
 
+function setSidebarCollapsed(collapsed) {
+	document.body.classList.toggle("is-sidebar-collapsed", collapsed);
+	const button = document.getElementById("sidebar-toggle");
+	button?.setAttribute("aria-pressed", String(collapsed));
+	try {
+		localStorage.setItem("supermentor:sidebar-collapsed", collapsed ? "true" : "false");
+	} catch {}
+}
+
+function toggleSidebar() {
+	setSidebarCollapsed(!document.body.classList.contains("is-sidebar-collapsed"));
+}
+
 function initSidebarResize() {
 	const resizer = document.getElementById("sidebar-resizer");
 	const maxSidebarWidth = () => Math.min(448, window.innerWidth * 0.38);
 	const saved = Number(localStorage.getItem("supermentor:sidebar-width"));
 	if (Number.isFinite(saved)) document.documentElement.style.setProperty("--sidebar-width", `${clamp(saved, 220, maxSidebarWidth())}px`);
-	resizer?.addEventListener("pointerdown", (event) => {
+	setSidebarCollapsed(localStorage.getItem("supermentor:sidebar-collapsed") === "true");
+	resizer?.addEventListener("dblclick", (event) => {
 		if (window.matchMedia("(max-width: 720px)").matches) return;
+		event.preventDefault();
+		toggleSidebar();
+	});
+	resizer?.addEventListener("pointerdown", (event) => {
+		if (window.matchMedia("(max-width: 720px)").matches || document.body.classList.contains("is-sidebar-collapsed")) return;
 		event.preventDefault();
 		document.body.classList.add("is-resizing-sidebar");
 		console.debug("supermentor sidebar resize start");
@@ -467,7 +507,7 @@ if (typeof document !== "undefined") {
 	initTheme({ document, storage: localStorage });
 	initSidebarResize();
 	document.getElementById("theme-toggle")?.addEventListener("click", () => toggleTheme({ document, storage: localStorage }));
-	document.getElementById("refresh")?.addEventListener("click", () => loadSession().catch(console.error));
+	document.getElementById("sidebar-toggle")?.addEventListener("click", () => toggleSidebar());
 	loadSession().catch((error) => {
 		document.getElementById("lesson-view").innerHTML = `<section class="sm-error">${escapeHtml(error.message)}</section>`;
 	});

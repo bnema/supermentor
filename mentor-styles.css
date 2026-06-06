@@ -92,6 +92,33 @@ button img {
   overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg-secondary);
+  transition: flex-basis 160ms ease, width 160ms ease, min-width 160ms ease;
+}
+body.is-sidebar-collapsed #lesson-outline {
+  flex-basis: 0;
+  width: 0;
+  min-width: 0;
+  border-right-color: transparent;
+  overflow: visible;
+}
+body.is-sidebar-collapsed .sm-sidebar-main,
+body.is-sidebar-collapsed #theme-toggle {
+  opacity: 0;
+  pointer-events: none;
+}
+body.is-sidebar-collapsed .sm-sidebar-footer {
+  position: fixed;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 6;
+  padding: 0;
+  border: 0;
+}
+body.is-sidebar-collapsed #sidebar-toggle {
+  flex: 0 0 auto;
+  width: 2.35rem;
+  background: var(--bg-secondary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 #sidebar-resizer {
   position: absolute;
@@ -102,6 +129,10 @@ button img {
   cursor: col-resize;
   touch-action: none;
   z-index: 4;
+}
+body.is-sidebar-collapsed #sidebar-resizer {
+  right: -10px;
+  width: 14px;
 }
 #sidebar-resizer::after {
   content: "";
@@ -247,7 +278,8 @@ main {
   margin-bottom: clamp(2rem, 5vw, 3.5rem);
   scroll-margin-top: 1rem;
 }
-.sm-section:target { outline: 2px solid var(--accent); outline-offset: 0.6rem; border-radius: 0.4rem; }
+.sm-section:target,
+.sm-section.is-active-content { outline: 2px solid var(--accent); outline-offset: 0.6rem; border-radius: 0.4rem; }
 .sm-section-header {
   display: grid;
   grid-template-columns: 2.8rem minmax(0, 1fr);
@@ -289,7 +321,9 @@ main {
   scroll-margin-top: 1rem;
 }
 .sm-section-lead:target,
-.sm-subblock:target {
+.sm-subblock:target,
+.sm-section-lead.is-active-content,
+.sm-subblock.is-active-content {
   outline: 2px solid var(--accent);
   outline-offset: 0.35rem;
   border-radius: 0.35rem;
@@ -416,7 +450,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
 
 @media (max-width: 720px) {
   body { display: block; --sidebar-width: auto; }
-  #lesson-outline {
+  #lesson-outline,
+  body.is-sidebar-collapsed #lesson-outline {
     position: static;
     width: auto;
     max-width: none;
@@ -425,8 +460,22 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
     max-height: 42vh;
     border-right: 0;
     border-bottom: 1px solid var(--border);
+    overflow: hidden;
   }
   #sidebar-resizer { display: none; }
+  body.is-sidebar-collapsed .sm-sidebar-main,
+  body.is-sidebar-collapsed .sm-sidebar-footer,
+  body.is-sidebar-collapsed #theme-toggle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.is-sidebar-collapsed .sm-sidebar-footer {
+    position: static;
+    left: auto;
+    bottom: auto;
+    z-index: auto;
+    border-top: 1px solid var(--border-soft);
+  }
   .sm-sidebar-footer { padding: 0.65rem 0.8rem; }
   .sm-topbar { padding-inline: 1rem; }
   #lesson-view { padding: 1rem; }

@@ -55,13 +55,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 - Files:
   - `assets/icons/theme.svg` from `sun-moon.svg`
-  - `assets/icons/refresh.svg` from `refresh-cw.svg`
+  - `assets/icons/sidebar.svg` from `panel-left-close.svg`
   - `assets/icons/comment.svg` from `message-circle.svg`
 - Source repository: `https://github.com/lucide-icons/lucide`
 - Source checkout: cloned with `git clone --depth 1 https://github.com/lucide-icons/lucide.git /tmp/lucide` on 2026-06-06
 - Checksums:
   - `assets/icons/theme.svg`: `sha256-d1b183b301763d4674e784fab326cf26c3e6dea7192a0b1e1af3709c8cae73db`
-  - `assets/icons/refresh.svg`: `sha256-2e10dd403c85a24f163d59fc6151aa21147fe9402e1305dfc8979208caee8944`
+  - `assets/icons/sidebar.svg`: `sha256-8f5b1fc9255e60f212379e8e315087a2f0a595a639ad2fb25c255dc3295c4e7d`
   - `assets/icons/comment.svg`: `sha256-146f39740fe50844394d56ae1f8821937655bcfff3842bf6fe8ffc0bcd324076`
 - License: ISC
 
