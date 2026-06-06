@@ -352,6 +352,11 @@ async function handleRequestAsync(req, res, url) {
 		["/mentor-client.js", ["application/javascript; charset=utf-8", "mentor-client.js"]],
 		["/mentor-styles.css", ["text/css; charset=utf-8", "mentor-styles.css"]],
 		["/mentor-theme.js", ["application/javascript; charset=utf-8", "mentor-theme.js"]],
+		["/assets/highlight.min.js", ["application/javascript; charset=utf-8", path.join("assets", "highlight.min.js")]],
+		["/assets/highlight-github-dark.min.css", ["text/css; charset=utf-8", path.join("assets", "highlight-github-dark.min.css")]],
+		["/assets/icons/theme.svg", ["image/svg+xml; charset=utf-8", path.join("assets", "icons", "theme.svg")]],
+		["/assets/icons/refresh.svg", ["image/svg+xml; charset=utf-8", path.join("assets", "icons", "refresh.svg")]],
+		["/assets/icons/comment.svg", ["image/svg+xml; charset=utf-8", path.join("assets", "icons", "comment.svg")]],
 	]);
 	if (req.method === "GET" && staticFiles.has(url.pathname)) {
 		const [contentType, fileName] = staticFiles.get(url.pathname);
