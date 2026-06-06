@@ -113,6 +113,10 @@ node server.cjs
 
 Manual server mode prints a `server-started` JSON event with the URL, session id, session directory, and token. Inline browser questions still require a harness adapter; manual server mode does not route questions into an agent session by itself.
 
+## Credits
+
+Supermentor is heavily inspired by [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent (`@obra`), especially its skill-first approach and local harness installation patterns.
+
 ## License
 
 MIT © bnema
