@@ -1,6 +1,6 @@
 # supermentor
 
-supermentor is an adaptive mentorship layer for coding agents that helps humans learn code, concepts, and projects. It combines a skill-first pedagogy with an optional local browser companion for lessons, code walkthroughs, exercises, and inline questions.
+supermentor is an adaptive mentorship layer that helps coding agents teach humans code, concepts, and projects. It combines a skill-first pedagogy with an optional local browser companion for lessons, code walkthroughs, exercises, and inline questions.
 
 The goal is not to make the agent finish a course. The goal is to help the learner build a complete mental model: slow down when the material gets dense, dissect code step by step, validate understanding passively, and keep inline clarifications attached to the exact section or code range that triggered them.
 
