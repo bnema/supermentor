@@ -17,15 +17,19 @@
     "browser",
     "tutoring"
   ],
+  "main": ".opencode/plugins/supermentor.js",
   "files": [
     "*.js",
     "*.cjs",
     "*.css",
     "*.html",
     "*.d.ts",
+    ".claude-plugin",
+    ".opencode",
     "skills",
     "extensions",
     "docs",
+    "install",
     "scripts",
     "LICENSE",
     "README.md"
