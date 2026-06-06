@@ -302,7 +302,7 @@ main {
   border-left: 1px solid var(--border-soft);
 }
 .sm-subblock {
-  padding: 0.95rem 0 0.95rem clamp(0.8rem, 2vw, 1.2rem);
+  padding: 0.95rem clamp(0.8rem, 2vw, 1.2rem);
   background: var(--surface-soft);
 }
 .sm-subblock-heading {
@@ -433,6 +433,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
   .sm-section-header { grid-template-columns: 2.15rem minmax(0, 1fr); gap: 0.65rem; }
   .sm-section-number { width: 1.95rem; height: 1.95rem; font-size: 0.9rem; }
   .sm-section-children { padding-left: 0.8rem; }
-  .sm-subblock { padding-left: 0.8rem; }
+  .sm-subblock { padding-inline: 0.8rem; }
   .sm-code code.hljs { padding: 0.75rem; }
 }
