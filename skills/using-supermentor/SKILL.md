@@ -33,11 +33,50 @@ Activate this skill when the user says or implies things like:
 
 Do not require the exact phrase “je suis bloqué”. Infer learning difficulty from intent and context.
 
+## Routing model
+
+Supermentor adapts each session to the learner's goal and the context available in the current workspace. A session can start from selected code, an empty repo, a public codebase, a failing test, a concept question, or a project idea.
+
+Use this routing model:
+
+```text
+Learning request -> intent -> available context -> learning mode -> active teaching loop
+```
+
+### Context sources
+
+Check what the learner actually gave you:
+
+- **No code / blank repo** — create a learning situation with a short course, tiny lab, or project slice.
+- **Project idea** — teach through a guided build, separating boilerplate from the learning objective.
+- **Existing repo / public codebase** — map the project, choose a narrative reading path, then dissect one flow.
+- **Selected code / named file** — use local code dissection.
+- **Error, log, or failing test** — teach through diagnosis and evidence.
+- **Concept-only question** — verify source-sensitive facts, then use examples, predictions, and a micro-exercise.
+
+### Learning modes
+
+Choose the smallest mode that fits:
+
+1. **Guided course** — structured learning from scratch or a blank repo. Use `supermentor-guided-learning` when available.
+2. **Project-based learning** — build a small vertical slice to learn a language/framework/tool. Use `supermentor-guided-learning` when available.
+3. **Codebase tour** — understand a repository or open-source project through maps, reading paths, tests, and traces. Use `supermentor-codebase-tour` when available.
+4. **Code dissection** — explain a function, file, loop, parser, handler, or data flow. Use `supermentor-code-dissection` when available.
+5. **Debugging lesson** — learn from an error or failing test; gather evidence before explaining causes.
+6. **Practice/drill** — recall, prediction, Parsons-style ordering, small edits, or review prompts.
+7. **Recap/consolidation** — summarize the mental model and name what to revisit later.
+
 ## First response pattern
 
-When the request is broad, start with a short orientation question:
+When the request is broad, start with a short orientation question that matches the context:
 
-> Qu’est-ce que tu veux apprendre aujourd’hui, et tu préfères qu’on parte plutôt d’un concept, d’un bout de code réel, ou d’un petit projet guidé ?
+> Tu veux apprendre plutôt en mode petit cours guidé, en construisant un mini-projet, ou en disséquant une codebase réelle ?
+
+If the repo is empty and the learner names a topic, propose a default path instead of asking for a syllabus:
+
+> On peut partir sur un mini-projet guidé pour rendre les concepts concrets. Si tu débutes, je te proposerais une première tranche très courte : faire tourner un programme minimal, prédire sa sortie, puis modifier une chose.
+
+If the repo is existing or public and the learner asks to understand it, first map the codebase and choose a reading path. Do not jump directly into a random selected file unless the learner asked for that file.
 
 When the request is already specific, do not ask generic intake questions. Start by checking the relevant source of truth, then teach directly.
 
@@ -53,15 +92,18 @@ You do not need a long research phase for timeless fundamentals, but you must ve
 
 ## Teaching surfaces
 
-Choose the surface that fits:
+Choose the surface that fits the mode and the client. Supermentor must work in chat even when the client cannot expose slash commands, browser panels, or inline-comment bridges.
 
-1. **Chat explanation** — for short, local questions.
-2. **Code dissection** — for functions, loops, files, architecture, parser logic, control flow, data transformations.
-3. **Interactive browser companion** — for long walkthroughs, code with many anchors, or content the learner may want to comment inline.
-4. **Practice/lab** — for learning by writing or modifying code.
-5. **Project-based learning** — for learning a topic through a real build.
+1. **Chat explanation** — portable default for short or medium lessons.
+2. **Guided course / project lab** — for blank repos, scratch folders, or “learn by building” requests.
+3. **Codebase tour** — for existing repositories, public/open-source projects, architecture maps, and feature traces.
+4. **Code dissection** — for functions, loops, files, parser logic, control flow, data transformations.
+5. **Interactive browser companion** — optional; use only where the current harness has a tested bridge and long anchored walkthroughs would benefit.
+6. **Practice/drill** — for predictions, tracing, small edits, recall, and review.
 
-Offer the browser companion like this when useful:
+Commands such as `/supermentor-start` are convenience affordances in clients that support them. Do not require them as the main learning interface. If commands or browser support are absent, continue with the same pedagogy in chat.
+
+Offer the browser companion like this when useful and supported:
 
 > Je peux te répondre directement ici. Si tu veux rendre cet apprentissage plus interactif, je peux aussi ouvrir un espace où tu pourras commenter les sections ou les lignes de code qui coincent, et je répondrai directement sous ces passages.
 

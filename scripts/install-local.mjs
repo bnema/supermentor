@@ -13,7 +13,12 @@ const client = process.argv[2];
 const args = new Set(process.argv.slice(3));
 
 function usage() {
-	console.log(`Usage: node scripts/install-local.mjs <client> [--copy]
+	console.log(`Usage:
+  node scripts/install-local.mjs pi
+  node scripts/install-local.mjs opencode
+  node scripts/install-local.mjs claude
+  node scripts/install-local.mjs codex
+  node scripts/install-local.mjs all
 
 Clients:
   pi          Run: pi install <this checkout>
@@ -24,6 +29,9 @@ Clients:
 
 Options:
   --copy      Copy files/directories instead of creating symlinks where supported
+
+Example:
+  node scripts/install-local.mjs codex --copy
 `);
 }
 
@@ -75,7 +83,7 @@ function installClaude() {
 
 function installCodex() {
 	const skillsTarget = path.join(home, ".agents/skills");
-	for (const skill of ["using-supermentor", "supermentor-code-dissection"]) {
+	for (const skill of ["using-supermentor", "supermentor-code-dissection", "supermentor-guided-learning", "supermentor-codebase-tour"]) {
 		linkOrCopy(path.join(repoRoot, "skills", skill), path.join(skillsTarget, skill), "dir");
 	}
 	console.log("Restart Codex, then run /skills or mention $using-supermentor to verify.");

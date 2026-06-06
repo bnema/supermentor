@@ -29,6 +29,8 @@ Equivalent manual commands:
 mkdir -p ~/.agents/skills
 ln -sfn ~/.local/share/supermentor/skills/using-supermentor ~/.agents/skills/using-supermentor
 ln -sfn ~/.local/share/supermentor/skills/supermentor-code-dissection ~/.agents/skills/supermentor-code-dissection
+ln -sfn ~/.local/share/supermentor/skills/supermentor-guided-learning ~/.agents/skills/supermentor-guided-learning
+ln -sfn ~/.local/share/supermentor/skills/supermentor-codebase-tour ~/.agents/skills/supermentor-codebase-tour
 ```
 
 If symlinks are inconvenient:

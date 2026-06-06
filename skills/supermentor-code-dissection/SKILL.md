@@ -24,7 +24,7 @@ Use this skill to teach through real code. The goal is to unfold the code so the
    - ask a small prediction when useful;
    - contrast with a common misconception;
    - offer a micro-exercise if the learner wants to practice.
-6. If the walkthrough is long or commentable, offer the browser companion once.
+6. If the walkthrough is long or commentable, offer the browser companion only when the current client has a tested bridge or an active Supermentor browser session. Otherwise continue in chat.
 
 ## Chunking rules
 
@@ -42,7 +42,7 @@ Avoid dumping the entire file and explaining line by line without structure. Lin
 
 ## Browser lesson blocks
 
-For an interactive walkthrough, write a `learning-document` with:
+Use browser lesson blocks only when a Supermentor browser session is running and the current client can route inline questions back to the agent. For an interactive walkthrough, write a `learning-document` with:
 
 - a `concept` block for the high-level mental model;
 - one or more `code` blocks with exact file/line metadata;

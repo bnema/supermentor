@@ -4,11 +4,38 @@
 
 supermentor has three layers that let a coding agent mentor the human learner:
 
-1. **Pedagogical skills** — teach the agent how to recognize learning intent, choose a teaching strategy, and keep code intervention pedagogical.
-2. **Local learning server** — serves an adaptive document and converts browser inline questions into filesystem side-thread events.
-3. **Harness adapters** — bridge server events into a client session and tell the agent where to read questions and write replies.
+1. **Pedagogical skills** — the portable core. They teach the agent to recognize learning intent, inspect available context, choose a learning mode, and keep code intervention pedagogical.
+2. **Local learning server** — an optional browser companion that serves an adaptive document and converts browser inline questions into filesystem side-thread events.
+3. **Harness adapters** — optional client-specific bridges. They expose commands, start the local server, or route browser events into a client session where that client supports it.
 
-The browser is a companion, not the default interface. The agent should offer it when interactivity adds real learning value.
+The default product model is **skill-first, command-optional**. Supermentor should work from natural-language requests in clients that only support skills or chat. Slash commands and the browser companion are convenience surfaces, not the required learning interface.
+
+## Learning mode model
+
+Supermentor routes each request from the learner's goal and the context available in the current workspace:
+
+```text
+Learning request -> intent -> available context -> learning mode -> active teaching loop
+```
+
+Important contexts:
+
+- **Blank repo or scratch folder** — Supermentor creates a learning context through a tiny course, lab, or project slice.
+- **Project idea** — Supermentor teaches by building one small vertical slice while preserving learner ownership.
+- **Existing or public codebase** — Supermentor extracts a learning context by mapping the repo, selecting a narrative reading path, and dissecting one flow.
+- **Selected code or named file** — Supermentor performs local code dissection.
+- **Error, log, or failing test** — Supermentor teaches through diagnosis and evidence.
+- **Concept-only question** — Supermentor verifies source-sensitive facts, then teaches with examples and recall prompts.
+
+The initial v1 learning modes are:
+
+- guided course;
+- project-based learning;
+- codebase tour;
+- code dissection;
+- debugging lesson;
+- practice/drill;
+- recap/consolidation.
 
 ## Core data model
 
@@ -103,9 +130,20 @@ When the agent touches code, it must explain why, what pattern it illustrates, a
 
 The default voice is tutoiement: a patient senior peer, not a school teacher. Avoid “tu as compris ?” as the default checkpoint. Prefer passive comprehension validation: predictions, traces, contrastive examples, optional micro-exercises, and concise recaps.
 
+## Client capability model
+
+Client integrations do not all expose the same extension features:
+
+- **Pi** supports Supermentor skills plus extension commands for the browser companion.
+- **OpenCode** currently registers skills and bootstrap instructions; the browser bridge is not claimed as supported yet.
+- **Claude Code** currently uses Supermentor as a local skills-directory plugin; the browser bridge is not claimed as supported yet.
+- **Codex** currently uses local skill installation; the browser bridge is not claimed as supported yet.
+
+This means Supermentor docs and skills must not require commands such as `/supermentor-start` for core learning. They may mention commands only as optional features where the client supports them.
+
 ## Browser companion offer
 
-Do not push the browser companion by default. Offer it only when useful:
+Do not push the browser companion by default. Offer it only when useful and supported by the current client:
 
 > Je peux te répondre directement ici. Si tu veux rendre cet apprentissage plus interactif, je peux ouvrir un espace où tu pourras commenter les sections ou les lignes de code qui coincent, et je répondrai directement sous ces passages.
 

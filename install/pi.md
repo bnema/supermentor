@@ -33,7 +33,7 @@ Start a new Pi session. Supermentor contributes:
 
 - skills from `skills/`;
 - extension commands from `extensions/`:
-  - `/supermentor-start [title]`
+  - `/supermentor-start Learning session`
   - `/supermentor-status`
   - `/supermentor-stop`
 
