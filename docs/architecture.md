@@ -1,8 +1,8 @@
-# superlearner architecture
+# supermentor architecture
 
 ## Overview
 
-superlearner has three layers:
+supermentor has three layers that let a coding agent mentor the human learner:
 
 1. **Pedagogical skills** — teach the agent how to recognize learning intent, choose a teaching strategy, and keep code intervention pedagogical.
 2. **Local learning server** — serves an adaptive document and converts browser inline questions into filesystem side-thread events.
@@ -18,7 +18,7 @@ The browser is a companion, not the default interface. The agent should offer it
 {
   "kind": "learning-document",
   "version": 1,
-  "sessionId": "sl_...",
+  "sessionId": "sm_...",
   "title": "Comprendre une boucle HTTP",
   "intro": "...",
   "blocks": [
@@ -69,7 +69,7 @@ The question enters the main agent context through the adapter so it can use the
 
 ## Security model
 
-The server is loopback-only. `SUPERLEARNER_HOST` may be `127.0.0.1` or `::1`; non-loopback values are rejected at startup. This is intentional because the initial HTML page embeds a random per-server token used for browser API calls.
+The server is loopback-only. `SUPERMENTOR_HOST` may be `127.0.0.1` or `::1`; non-loopback values are rejected at startup. This is intentional because the initial HTML page embeds a random per-server token used for browser API calls.
 
 The browser can read session and lesson data and submit inline questions. It cannot overwrite `lesson.json` through HTTP; agents update lessons by writing the session file directly.
 
@@ -80,15 +80,15 @@ Inline question submission waits for a short launcher acknowledgement before tel
 Sessions are outside the current repository:
 
 ```text
-$XDG_CACHE_HOME/superlearner/sessions/<sessionId>/
-~/.cache/superlearner/sessions/<sessionId>/
+$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/
+~/.cache/supermentor/sessions/<sessionId>/
 ```
 
 This matters because learning can happen from any directory, including `$HOME` or scratch folders with no git repository.
 
 ## Pedagogical policy
 
-superlearner should use an assistance ladder, not a binary “agent does it / human does it” split:
+supermentor should use an assistance ladder, not a binary “agent does it / human does it” split:
 
 1. Orient with the idea and constraints.
 2. Guide the next small step.

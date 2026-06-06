@@ -1,36 +1,36 @@
 import {
-	buildSuperlearnerUrl,
-	defaultSuperlearnerServerPath,
-	spawnSuperlearnerServer,
+	buildSupermentorUrl,
+	defaultSupermentorServerPath,
+	spawnSupermentorServer,
 	waitForServerStarted,
-	writeSuperlearnerAck,
+	writeSupermentorAck,
 } from "./client-shared.js";
 
 export { waitForServerStarted };
 
-export function opencodeSuperlearnerServerOptions(args = {}) {
+export function opencodeSupermentorServerOptions(args = {}) {
 	return {
 		cwd: args.cwd || process.cwd(),
-		serverPath: args.serverPath || defaultSuperlearnerServerPath,
+		serverPath: args.serverPath || defaultSupermentorServerPath,
 		env: {
-			SUPERLEARNER_CWD: args.cwd || process.cwd(),
-			SUPERLEARNER_SESSION_ID: args.sessionID,
-			SUPERLEARNER_TITLE: args.title,
-			SUPERLEARNER_SESSION_DIR: args.sessionDir,
-			SUPERLEARNER_CACHE_DIR: args.cacheDir,
+			SUPERMENTOR_CWD: args.cwd || process.cwd(),
+			SUPERMENTOR_SESSION_ID: args.sessionID,
+			SUPERMENTOR_TITLE: args.title,
+			SUPERMENTOR_SESSION_DIR: args.sessionDir,
+			SUPERMENTOR_CACHE_DIR: args.cacheDir,
 		},
 		stdio: ["pipe", "pipe", "pipe"],
 	};
 }
 
-export function spawnOpencodeSuperlearnerServer(args = {}) {
-	return spawnSuperlearnerServer(opencodeSuperlearnerServerOptions(args));
+export function spawnOpencodeSupermentorServer(args = {}) {
+	return spawnSupermentorServer(opencodeSupermentorServerOptions(args));
 }
 
-export function buildOpencodeSuperlearnerUrl(started, args = {}) {
-	return buildSuperlearnerUrl(started, { session: args.sessionID || started.sessionId });
+export function buildOpencodeSupermentorUrl(started, args = {}) {
+	return buildSupermentorUrl(started, { session: args.sessionID || started.sessionId });
 }
 
-export function writeOpencodeSuperlearnerAck(child, requestId, ack) {
-	writeSuperlearnerAck(child, requestId, ack);
+export function writeOpencodeSupermentorAck(child, requestId, ack) {
+	writeSupermentorAck(child, requestId, ack);
 }

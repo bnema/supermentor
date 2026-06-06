@@ -1,36 +1,36 @@
 import {
-	buildSuperlearnerUrl,
-	defaultSuperlearnerServerPath,
-	spawnSuperlearnerServer,
+	buildSupermentorUrl,
+	defaultSupermentorServerPath,
+	spawnSupermentorServer,
 	waitForServerStarted,
-	writeSuperlearnerAck,
+	writeSupermentorAck,
 } from "./client-shared.js";
 
 export { waitForServerStarted };
 
-export function piSuperlearnerServerOptions(args = {}) {
+export function piSupermentorServerOptions(args = {}) {
 	return {
 		cwd: args.cwd || process.cwd(),
-		serverPath: args.serverPath || defaultSuperlearnerServerPath,
+		serverPath: args.serverPath || defaultSupermentorServerPath,
 		env: {
-			SUPERLEARNER_CWD: args.cwd || process.cwd(),
-			SUPERLEARNER_SESSION_ID: args.sessionID,
-			SUPERLEARNER_TITLE: args.title,
-			SUPERLEARNER_SESSION_DIR: args.sessionDir,
-			SUPERLEARNER_CACHE_DIR: args.cacheDir,
+			SUPERMENTOR_CWD: args.cwd || process.cwd(),
+			SUPERMENTOR_SESSION_ID: args.sessionID,
+			SUPERMENTOR_TITLE: args.title,
+			SUPERMENTOR_SESSION_DIR: args.sessionDir,
+			SUPERMENTOR_CACHE_DIR: args.cacheDir,
 		},
 		stdio: ["pipe", "pipe", "pipe"],
 	};
 }
 
-export function spawnPiSuperlearnerServer(args = {}) {
-	return spawnSuperlearnerServer(piSuperlearnerServerOptions(args));
+export function spawnPiSupermentorServer(args = {}) {
+	return spawnSupermentorServer(piSupermentorServerOptions(args));
 }
 
-export function buildPiSuperlearnerUrl(started, args = {}) {
-	return buildSuperlearnerUrl(started, { context: args.sessionID || started.sessionId });
+export function buildPiSupermentorUrl(started, args = {}) {
+	return buildSupermentorUrl(started, { context: args.sessionID || started.sessionId });
 }
 
-export function writePiSuperlearnerAck(child, requestId, ack) {
-	writeSuperlearnerAck(child, requestId, ack);
+export function writePiSupermentorAck(child, requestId, ack) {
+	writeSupermentorAck(child, requestId, ack);
 }

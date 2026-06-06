@@ -1,13 +1,13 @@
 {
-  "name": "superlearner",
+  "name": "supermentor",
   "version": "0.1.0",
-  "description": "Adaptive learning skills and a local browser companion for coding agents",
+  "description": "Adaptive mentorship skills and a local browser companion that help humans learn with coding agents",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/bnema/superlearner",
+  "homepage": "https://github.com/bnema/supermentor",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bnema/superlearner.git"
+    "url": "git+https://github.com/bnema/supermentor.git"
   },
   "keywords": [
     "pi-package",
@@ -59,7 +59,7 @@
       "types": "./opencode.d.ts",
       "default": "./opencode.js"
     },
-    "./learner-prompt.js": "./learner-prompt.js"
+    "./mentor-prompt.js": "./mentor-prompt.js"
   },
   "pi": {
     "skills": [

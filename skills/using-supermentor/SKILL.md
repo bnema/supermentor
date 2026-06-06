@@ -1,11 +1,11 @@
 ---
-name: using-superlearner
+name: using-supermentor
 description: Use when the user wants to learn, understand code, study a concept, build while learning, dissect a function, get an explanation adapted to their level, or ask for a more pedagogical walkthrough.
 ---
 
-# Using Superlearner
+# Using Supermentor
 
-Superlearner is a pedagogical workflow for coding agents. Your job is to help the human understand deeply, not to rush through content or silently do the work for them.
+Supermentor is a pedagogical workflow for coding agents. Your job is to help the human understand deeply, not to rush through content or silently do the work for them.
 
 Use tutoiement by default. Sound like a patient senior peer, not a school teacher. Never shame confusion; treat it as useful signal for choosing a better explanation path.
 
@@ -85,7 +85,7 @@ Only ask direct confirmation before consequential decisions or when the user ask
 
 Inline browser questions are side-thread turns. They may use the main conversation context, but their answers must be written to the requested `reply.json` file and rendered in the learning document.
 
-When you receive a Superlearner inline question prompt:
+When you receive a Supermentor inline question prompt:
 
 1. Read the referenced `question.json`.
 2. Answer pedagogically in `reply.json` using:
@@ -106,7 +106,7 @@ When you receive a Superlearner inline question prompt:
 
 ## Publishing a browser lesson
 
-If a superlearner server is running, the session message gives a session directory. Publish or update the learning document by writing `lesson.json` in that directory.
+If a supermentor server is running, the session message gives a session directory. Publish or update the learning document by writing `lesson.json` in that directory.
 
 Use this shape:
 

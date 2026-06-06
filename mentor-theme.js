@@ -1,7 +1,7 @@
 export function initTheme({ document, storage }) {
 	let theme = "dark";
 	try {
-		const saved = storage?.getItem?.("superlearner:theme");
+		const saved = storage?.getItem?.("supermentor:theme");
 		if (saved === "dark" || saved === "light") theme = saved;
 		else if (!globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches) theme = "light";
 	} catch {}
@@ -14,7 +14,7 @@ export function setTheme({ document, storage }, theme) {
 	document.documentElement.dataset.theme = value;
 	document.documentElement.style.colorScheme = value;
 	try {
-		storage?.setItem?.("superlearner:theme", value);
+		storage?.setItem?.("supermentor:theme", value);
 	} catch {}
 	return value;
 }

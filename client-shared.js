@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const defaultSuperlearnerServerPath = fileURLToPath(new URL("./server.cjs", import.meta.url));
+export const defaultSupermentorServerPath = fileURLToPath(new URL("./server.cjs", import.meta.url));
 
 export function parseServerEventLine(line) {
 	try {
@@ -38,14 +38,14 @@ export async function waitForServerStarted(child) {
 			}
 		};
 		const onError = (error) => finish(reject, error);
-		const onExit = (code) => finish(reject, new Error(`superlearner server exited early: ${code}`));
+		const onExit = (code) => finish(reject, new Error(`supermentor server exited early: ${code}`));
 		child.stdout?.on("data", onData);
 		child.once("error", onError);
 		child.once("exit", onExit);
 	});
 }
 
-export function buildSuperlearnerUrl(started, params = {}) {
+export function buildSupermentorUrl(started, params = {}) {
 	const url = new URL(started?.url || `http://127.0.0.1:${started?.port || 0}/`);
 	for (const [key, value] of Object.entries(params)) {
 		if (value === undefined || value === null || value === "") continue;
@@ -54,19 +54,19 @@ export function buildSuperlearnerUrl(started, params = {}) {
 	return url.toString();
 }
 
-export function spawnSuperlearnerServer(options = {}) {
-	return spawn(process.execPath, [options.serverPath || defaultSuperlearnerServerPath], {
+export function spawnSupermentorServer(options = {}) {
+	return spawn(process.execPath, [options.serverPath || defaultSupermentorServerPath], {
 		cwd: options.cwd || process.cwd(),
 		env: { ...process.env, ...options.env },
 		stdio: options.stdio || ["pipe", "pipe", "pipe"],
 	});
 }
 
-export function writeSuperlearnerAck(child, requestId, ack) {
-	if (!child.stdin || child.stdin.destroyed) throw new Error("superlearner server stdin is closed");
+export function writeSupermentorAck(child, requestId, ack) {
+	if (!child.stdin || child.stdin.destroyed) throw new Error("supermentor server stdin is closed");
 	child.stdin.write(
 		`${JSON.stringify({
-			type: "superlearner-ack",
+			type: "supermentor-ack",
 			requestId,
 			ok: ack.ok,
 			...(ack.ok ? { message: ack.message } : { error: ack.error }),

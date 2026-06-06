@@ -1,17 +1,17 @@
-import { initTheme, toggleTheme } from "./learner-theme.js";
+import { initTheme, toggleTheme } from "./mentor-theme.js";
 
 function $(selector, root = document) {
 	return root.querySelector(selector);
 }
 
 function readBootstrap() {
-	const element = document.getElementById("superlearner-bootstrap");
-	if (!element) throw new Error("missing superlearner bootstrap");
+	const element = document.getElementById("supermentor-bootstrap");
+	if (!element) throw new Error("missing supermentor bootstrap");
 	return JSON.parse(element.textContent || "{}");
 }
 
 const bootstrap = readBootstrap();
-const headers = { "x-superlearner-token": bootstrap.token };
+const headers = { "x-supermentor-token": bootstrap.token };
 let currentLesson = null;
 let currentThreads = [];
 let pollTimers = new Map();
@@ -89,7 +89,7 @@ function getErrorMessage(error) {
 }
 
 function clearComposerError(composer) {
-	const errorElement = composer.querySelector(".sl-composer-error");
+	const errorElement = composer.querySelector(".sm-composer-error");
 	errorElement.hidden = true;
 	errorElement.textContent = "";
 }
@@ -105,10 +105,10 @@ function renderCodeBlock(block) {
 	const code = String(block.code || block.body || "");
 	const start = Number(block.startLine || 1);
 	const lines = code.split("\n");
-	return `<pre class="sl-code"><code>${lines
+	return `<pre class="sm-code"><code>${lines
 		.map((line, index) => {
 			const n = start + index;
-			return `<span class="sl-code-line" data-line="${n}"><span class="sl-line-no">${n}</span><span class="sl-line-text">${escapeHtml(line || " ")}</span></span>`;
+			return `<span class="sm-code-line" data-line="${n}"><span class="sm-line-no">${n}</span><span class="sm-line-text">${escapeHtml(line || " ")}</span></span>`;
 		})
 		.join("\n")}</code></pre>`;
 }
@@ -120,16 +120,16 @@ function threadsForBlock(blockId) {
 function renderThread(thread) {
 	const question = thread.question || {};
 	const reply = thread.reply || null;
-	return `<article class="sl-thread" data-thread-id="${escapeHtml(thread.threadId)}">
-		<div class="sl-thread-question">
+	return `<article class="sm-thread" data-thread-id="${escapeHtml(thread.threadId)}">
+		<div class="sm-thread-question">
 			<strong>Question</strong>
 			<p>${renderInlineMarkdown(question.question || "")}</p>
 			${question.selection ? `<blockquote>${renderInlineMarkdown(question.selection)}</blockquote>` : ""}
 		</div>
-		<div class="sl-thread-reply ${reply ? "" : "is-pending"}">
+		<div class="sm-thread-reply ${reply ? "" : "is-pending"}">
 			<strong>${reply ? "Réponse" : "En attente de la réponse de l’agent…"}</strong>
 			${reply?.markdown ? renderMarkdown(reply.markdown) : ""}
-			${Array.isArray(reply?.followups) && reply.followups.length ? `<div class="sl-followups">${reply.followups.map((item) => `<button type="button" data-followup="${escapeHtml(item.kind || item.action || item.label)}">${escapeHtml(item.label || item.kind || "Approfondir")}</button>`).join("")}</div>` : ""}
+			${Array.isArray(reply?.followups) && reply.followups.length ? `<div class="sm-followups">${reply.followups.map((item) => `<button type="button" data-followup="${escapeHtml(item.kind || item.action || item.label)}">${escapeHtml(item.label || item.kind || "Approfondir")}</button>`).join("")}</div>` : ""}
 		</div>
 	</article>`;
 }
@@ -138,28 +138,28 @@ function renderBlock(block, index) {
 	const id = block.id || `block-${index + 1}`;
 	const title = block.title || blockLabel(block.type);
 	const body = block.type === "code" ? renderCodeBlock(block) : renderMarkdown(block.body || block.markdown || "");
-	const source = block.file ? `<span class="sl-source">${escapeHtml(block.file)}${block.startLine ? `:${block.startLine}${block.endLine ? `-${block.endLine}` : ""}` : ""}</span>` : "";
-	return `<article class="sl-block sl-block-${escapeHtml(block.type || "section")}" id="${escapeHtml(id)}" data-block-id="${escapeHtml(id)}">
-		<header class="sl-block-header">
-			<div><span class="sl-block-kind">${escapeHtml(blockLabel(block.type))}</span><h2>${escapeHtml(title)}</h2>${source}</div>
-			<button class="sl-comment-button" type="button">Commenter</button>
+	const source = block.file ? `<span class="sm-source">${escapeHtml(block.file)}${block.startLine ? `:${block.startLine}${block.endLine ? `-${block.endLine}` : ""}` : ""}</span>` : "";
+	return `<article class="sm-block sm-block-${escapeHtml(block.type || "section")}" id="${escapeHtml(id)}" data-block-id="${escapeHtml(id)}">
+		<header class="sm-block-header">
+			<div><span class="sm-block-kind">${escapeHtml(blockLabel(block.type))}</span><h2>${escapeHtml(title)}</h2>${source}</div>
+			<button class="sm-comment-button" type="button">Commenter</button>
 		</header>
-		<div class="sl-block-body">${body}</div>
-		<div class="sl-composer" hidden>
+		<div class="sm-block-body">${body}</div>
+		<div class="sm-composer" hidden>
 			<label>Ta question sur ce passage</label>
-			<div class="sl-composer-error" role="alert" hidden></div>
+			<div class="sm-composer-error" role="alert" hidden></div>
 			<textarea rows="4" placeholder="Dis-moi ce qui est flou, ce que tu veux voir déroulé, ou demande un exemple…"></textarea>
-			<div class="sl-composer-actions"><button type="button" data-action="cancel">Annuler</button><button type="button" data-action="submit">Envoyer</button></div>
+			<div class="sm-composer-actions"><button type="button" data-action="cancel">Annuler</button><button type="button" data-action="submit">Envoyer</button></div>
 		</div>
-		<div class="sl-threads">${threadsForBlock(id).map(renderThread).join("")}</div>
+		<div class="sm-threads">${threadsForBlock(id).map(renderThread).join("")}</div>
 	</article>`;
 }
 
 function renderOutline(lesson) {
 	const outline = document.getElementById("lesson-outline");
 	const blocks = Array.isArray(lesson.blocks) ? lesson.blocks : [];
-	outline.innerHTML = `<div class="sl-sidebar-title">Session</div>
-		<div class="sl-session-id">${escapeHtml(bootstrap.sessionId)}</div>
+	outline.innerHTML = `<div class="sm-sidebar-title">Session</div>
+		<div class="sm-session-id">${escapeHtml(bootstrap.sessionId)}</div>
 		<nav>${blocks
 			.map((block, index) => {
 				const id = block.id || `block-${index + 1}`;
@@ -170,19 +170,19 @@ function renderOutline(lesson) {
 
 function renderLesson() {
 	if (!currentLesson) return;
-	$("#lesson-title").textContent = currentLesson.title || "Superlearner";
+	$("#lesson-title").textContent = currentLesson.title || "Supermentor";
 	const view = document.getElementById("lesson-view");
 	const blocks = Array.isArray(currentLesson.blocks) ? currentLesson.blocks : [];
-	view.innerHTML = `${currentLesson.intro ? `<section class="sl-intro">${renderMarkdown(currentLesson.intro)}</section>` : ""}${blocks.map(renderBlock).join("")}`;
+	view.innerHTML = `${currentLesson.intro ? `<section class="sm-intro">${renderMarkdown(currentLesson.intro)}</section>` : ""}${blocks.map(renderBlock).join("")}`;
 	renderOutline(currentLesson);
 	bindLessonEvents(view);
 }
 
 function bindLessonEvents(root) {
-	root.querySelectorAll(".sl-comment-button").forEach((button) => {
+	root.querySelectorAll(".sm-comment-button").forEach((button) => {
 		button.addEventListener("click", () => {
-			const block = button.closest(".sl-block");
-			const composer = block.querySelector(".sl-composer");
+			const block = button.closest(".sm-block");
+			const composer = block.querySelector(".sm-composer");
 			composer.hidden = false;
 			clearComposerError(composer);
 			const selected = selectedTextInside(block);
@@ -191,18 +191,18 @@ function bindLessonEvents(root) {
 			if (selected && !textarea.value) textarea.placeholder = `Question sur : ${selected.slice(0, 160)}`;
 		});
 	});
-	root.querySelectorAll(".sl-composer [data-action='cancel']").forEach((button) => {
+	root.querySelectorAll(".sm-composer [data-action='cancel']").forEach((button) => {
 		button.addEventListener("click", () => {
-			const composer = button.closest(".sl-composer");
+			const composer = button.closest(".sm-composer");
 			composer.hidden = true;
 			composer.querySelector("textarea").value = "";
 			clearComposerError(composer);
 		});
 	});
-	root.querySelectorAll(".sl-composer [data-action='submit']").forEach((button) => {
+	root.querySelectorAll(".sm-composer [data-action='submit']").forEach((button) => {
 		button.addEventListener("click", async () => {
-			const block = button.closest(".sl-block");
-			const composer = button.closest(".sl-composer");
+			const block = button.closest(".sm-block");
+			const composer = button.closest(".sm-composer");
 			const textarea = composer.querySelector("textarea");
 			const question = textarea.value.trim();
 			if (!question) return;
@@ -234,7 +234,7 @@ function bindLessonEvents(root) {
 				startThreadPolling(result.threadId);
 			} catch (error) {
 				const message = getErrorMessage(error);
-				const errorElement = composer.querySelector(".sl-composer-error");
+				const errorElement = composer.querySelector(".sm-composer-error");
 				errorElement.textContent = message;
 				errorElement.hidden = false;
 				errorElement.scrollIntoView({ block: "nearest" });
@@ -277,5 +277,5 @@ initTheme({ document, storage: localStorage });
 document.getElementById("theme-toggle")?.addEventListener("click", () => toggleTheme({ document, storage: localStorage }));
 document.getElementById("refresh")?.addEventListener("click", () => loadSession().catch(console.error));
 loadSession().catch((error) => {
-	document.getElementById("lesson-view").innerHTML = `<section class="sl-error">${escapeHtml(error.message)}</section>`;
+	document.getElementById("lesson-view").innerHTML = `<section class="sm-error">${escapeHtml(error.message)}</section>`;
 });

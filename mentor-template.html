@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>superlearner</title>
+    <title>supermentor</title>
     <script>
       (() => {
         try {
-          const saved = localStorage.getItem("superlearner:theme")
+          const saved = localStorage.getItem("supermentor:theme")
           const theme = saved === "dark" || saved === "light"
             ? saved
             : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
@@ -16,24 +16,24 @@
         } catch {}
       })()
     </script>
-    <link rel="stylesheet" href="/learner-styles.css">
+    <link rel="stylesheet" href="/mentor-styles.css">
   </head>
   <body>
     <aside id="lesson-outline"></aside>
     <main>
-      <header class="sl-topbar">
+      <header class="sm-topbar">
         <div>
-          <p class="sl-eyebrow">superlearner</p>
+          <p class="sm-eyebrow">supermentor</p>
           <h1 id="lesson-title">Chargement…</h1>
         </div>
-        <div class="sl-actions">
+        <div class="sm-actions">
           <button id="theme-toggle" type="button">Thème</button>
           <button id="refresh" type="button">Rafraîchir</button>
         </div>
       </header>
       <section id="lesson-view"></section>
     </main>
-    <script id="superlearner-bootstrap" type="application/json">{{BOOTSTRAP_JSON}}</script>
-    <script type="module" src="/learner-client.js"></script>
+    <script id="supermentor-bootstrap" type="application/json">{{BOOTSTRAP_JSON}}</script>
+    <script type="module" src="/mentor-client.js"></script>
   </body>
 </html>

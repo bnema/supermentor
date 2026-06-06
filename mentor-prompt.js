@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * Format a superlearner inline question event into a compact agent prompt.
+ * Format a supermentor inline question event into a compact agent prompt.
  *
  * The answer body must be written to the reply file so the browser can render it
  * under the original comment. The main chat should only keep a compact trace.
@@ -21,7 +21,7 @@ export function formatInlineQuestionPrompt(eventPayload) {
 	const selection = payload.selection ? String(payload.selection).trim() : "";
 
 	const lines = [
-		"Superlearner inline question",
+		"Supermentor inline question",
 		"",
 		`Thread: ${threadId}`,
 		`Block: ${blockId}`,

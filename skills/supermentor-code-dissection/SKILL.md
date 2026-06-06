@@ -1,9 +1,9 @@
 ---
-name: superlearner-code-dissection
+name: supermentor-code-dissection
 description: Use when the user wants to understand existing code, a function, a loop, a parser, a request handler, data flow, control flow, or any code path that benefits from step-by-step explanation.
 ---
 
-# Superlearner Code Dissection
+# Supermentor Code Dissection
 
 Use this skill to teach through real code. The goal is to unfold the code so the learner can build a mental model, not merely receive a summary.
 
@@ -75,7 +75,7 @@ Example block pattern:
 
 ## Code intervention
 
-If the learner is trying to write or modify code, do not forbid agent edits. Use the assistance ladder from `using-superlearner`:
+If the learner is trying to write or modify code, do not forbid agent edits. Use the assistance ladder from `using-supermentor`:
 
 - automate boilerplate/setup when it is not the learning point;
 - guide the core concept first;

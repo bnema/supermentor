@@ -1,6 +1,6 @@
-# superlearner
+# supermentor
 
-superlearner is an adaptive learning layer for coding agents. It combines a skill-first pedagogy with an optional local browser companion for lessons, code walkthroughs, exercises, and inline questions.
+supermentor is an adaptive mentorship layer for coding agents that helps humans learn code, concepts, and projects. It combines a skill-first pedagogy with an optional local browser companion for lessons, code walkthroughs, exercises, and inline questions.
 
 The goal is not to make the agent finish a course. The goal is to help the learner build a complete mental model: slow down when the material gets dense, dissect code step by step, validate understanding passively, and keep inline clarifications attached to the exact section or code range that triggered them.
 
@@ -24,16 +24,16 @@ V1 focuses on a reusable foundation:
 
 ## Session storage
 
-superlearner does **not** write session state into the current project by default. Sessions live under:
+supermentor does **not** write session state into the current project by default. Sessions live under:
 
 ```text
-$XDG_CACHE_HOME/superlearner/sessions/<sessionId>/
+$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/
 ```
 
 or, when `XDG_CACHE_HOME` is unset:
 
 ```text
-~/.cache/superlearner/sessions/<sessionId>/
+~/.cache/supermentor/sessions/<sessionId>/
 ```
 
 A session contains:

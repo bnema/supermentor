@@ -5,15 +5,15 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const cache = fs.mkdtempSync(path.join(os.tmpdir(), "superlearner-smoke-"));
+const cache = fs.mkdtempSync(path.join(os.tmpdir(), "supermentor-smoke-"));
 let smokeStarted = false;
 const child = spawn(process.execPath, ["server.cjs"], {
 	cwd: fileURLToPath(new URL("..", import.meta.url)),
 	env: {
 		...process.env,
-		SUPERLEARNER_CACHE_DIR: cache,
-		SUPERLEARNER_TITLE: "Smoke lesson",
-		SUPERLEARNER_ACK_TIMEOUT_MS: "2000",
+		SUPERMENTOR_CACHE_DIR: cache,
+		SUPERMENTOR_TITLE: "Smoke lesson",
+		SUPERMENTOR_ACK_TIMEOUT_MS: "2000",
 	},
 	stdio: ["pipe", "pipe", "pipe"],
 });
@@ -31,7 +31,7 @@ function finish(code, message) {
 	process.exit(code);
 }
 
-const timeout = setTimeout(() => finish(1, "superlearner smoke timeout"), 8000);
+const timeout = setTimeout(() => finish(1, "supermentor smoke timeout"), 8000);
 child.stderr.on("data", (chunk) => process.stderr.write(chunk));
 child.stdout.on("data", async (chunk) => {
 	stdout += chunk.toString();
@@ -55,21 +55,21 @@ child.stdout.on("data", async (chunk) => {
 
 async function runSmoke(started) {
 	const session = await fetch(`${started.url}api/session`, {
-		headers: { "x-superlearner-token": started.token },
+		headers: { "x-supermentor-token": started.token },
 	}).then((response) => response.json());
 	if (session.lesson.title !== "Smoke lesson") throw new Error("lesson title mismatch");
 
 	const submit = fetch(`${started.url}api/inline-question`, {
 		method: "POST",
 		headers: {
-			"x-superlearner-token": started.token,
+			"x-supermentor-token": started.token,
 			"content-type": "application/json",
 		},
 		body: JSON.stringify({ blockId: "welcome", question: "Pourquoi ?", selection: "texte" }),
 	});
 
 	const inlineEvent = await waitForInlineQuestion();
-	child.stdin.write(`${JSON.stringify({ type: "superlearner-ack", requestId: inlineEvent.requestId, ok: true, message: "delivered" })}\n`);
+	child.stdin.write(`${JSON.stringify({ type: "supermentor-ack", requestId: inlineEvent.requestId, ok: true, message: "delivered" })}\n`);
 	const submitted = await submit.then((response) => response.json());
 	if (!submitted.delivered) throw new Error("inline question was not acknowledged");
 
@@ -79,10 +79,10 @@ async function runSmoke(started) {
 	fs.writeFileSync(replyPath, `${JSON.stringify({ type: "inline_reply", threadId: submitted.threadId, markdown: "Réponse." })}\n`);
 
 	const thread = await fetch(`${started.url}api/threads/${submitted.threadId}`, {
-		headers: { "x-superlearner-token": started.token },
+		headers: { "x-supermentor-token": started.token },
 	}).then((response) => response.json());
 	if (thread.reply.markdown !== "Réponse.") throw new Error("reply was not returned");
-	finish(0, `superlearner smoke ok ${started.sessionId}`);
+	finish(0, `supermentor smoke ok ${started.sessionId}`);
 }
 
 function waitForInlineQuestion() {

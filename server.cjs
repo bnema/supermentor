@@ -6,8 +6,8 @@ const path = require("node:path");
 const readline = require("node:readline");
 
 const token = crypto.randomBytes(16).toString("hex");
-const idleTimeoutMs = Number.parseInt(process.env.SUPERLEARNER_IDLE_TIMEOUT_MS || "3600000", 10);
-const ackTimeoutMs = Number.parseInt(process.env.SUPERLEARNER_ACK_TIMEOUT_MS || "15000", 10);
+const idleTimeoutMs = Number.parseInt(process.env.SUPERMENTOR_IDLE_TIMEOUT_MS || "3600000", 10);
+const ackTimeoutMs = Number.parseInt(process.env.SUPERMENTOR_ACK_TIMEOUT_MS || "15000", 10);
 const submitBodyLimit = 128 * 1024;
 const staticAssetCache = new Map();
 const pendingAcks = new Map();
@@ -21,8 +21,8 @@ function touchActivity() {
 
 function cacheRoot() {
 	return (
-		process.env.SUPERLEARNER_CACHE_DIR ||
-		(path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "superlearner"))
+		process.env.SUPERMENTOR_CACHE_DIR ||
+		(path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "supermentor"))
 	);
 }
 
@@ -36,11 +36,11 @@ function slug(value) {
 
 function createSessionId() {
 	const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+$/, "Z");
-	return `sl_${stamp}_${crypto.randomBytes(4).toString("hex")}`;
+	return `sm_${stamp}_${crypto.randomBytes(4).toString("hex")}`;
 }
 
-const sessionId = slug(process.env.SUPERLEARNER_SESSION_ID) || createSessionId();
-const sessionDir = path.resolve(process.env.SUPERLEARNER_SESSION_DIR || path.join(cacheRoot(), "sessions", sessionId));
+const sessionId = slug(process.env.SUPERMENTOR_SESSION_ID) || createSessionId();
+const sessionDir = path.resolve(process.env.SUPERMENTOR_SESSION_DIR || path.join(cacheRoot(), "sessions", sessionId));
 const threadsDir = path.join(sessionDir, "threads");
 const contentDir = path.join(sessionDir, "content");
 const eventsFile = path.join(sessionDir, "events.jsonl");
@@ -54,8 +54,8 @@ function ensureSessionStore() {
 		writeJson(manifestFile, {
 			sessionId,
 			createdAt: new Date().toISOString(),
-			cwd: process.env.SUPERLEARNER_CWD || process.cwd(),
-			title: process.env.SUPERLEARNER_TITLE || "Superlearner session",
+			cwd: process.env.SUPERMENTOR_CWD || process.cwd(),
+			title: process.env.SUPERMENTOR_TITLE || "Supermentor session",
 			kind: "learning-session",
 		});
 	}
@@ -69,7 +69,7 @@ function defaultLesson() {
 		kind: "learning-document",
 		version: 1,
 		sessionId,
-		title: process.env.SUPERLEARNER_TITLE || "Superlearner",
+		title: process.env.SUPERMENTOR_TITLE || "Supermentor",
 		intro:
 			"Ton espace d’apprentissage interactif est prêt. Demande à l’agent de publier une leçon, un walkthrough de code, un exercice ou un parcours guidé ici.",
 		blocks: [
@@ -115,7 +115,7 @@ function parseRequestUrl(req) {
 }
 
 function rejectInvalidToken(req, res) {
-	if (req.headers["x-superlearner-token"] === token) return false;
+	if (req.headers["x-supermentor-token"] === token) return false;
 	res.writeHead(403, { "content-type": "application/json" });
 	res.end(JSON.stringify({ error: "invalid token" }));
 	return true;
@@ -234,7 +234,7 @@ function registerAck(requestId) {
 	return new Promise((resolve, reject) => {
 		const timeout = setTimeout(() => {
 			pendingAcks.delete(requestId);
-			reject(new Error(`superlearner launcher ack timeout after ${ackTimeoutMs}ms`));
+			reject(new Error(`supermentor launcher ack timeout after ${ackTimeoutMs}ms`));
 		}, ackTimeoutMs);
 		pendingAcks.set(requestId, { resolve, reject, timeout });
 	});
@@ -339,14 +339,14 @@ function handleRequest(req, res) {
 async function handleRequestAsync(req, res, url) {
 	if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
 	if (req.method === "GET" && url.pathname === "/") {
-		const template = readCachedText(path.join(__dirname, "learner-template.html"));
+		const template = readCachedText(path.join(__dirname, "mentor-template.html"));
 		serveText(res, "text/html; charset=utf-8", template.replace("{{BOOTSTRAP_JSON}}", escapeBootstrapJson(loadBootstrap())));
 		return;
 	}
 	const staticFiles = new Map([
-		["/learner-client.js", ["application/javascript; charset=utf-8", "learner-client.js"]],
-		["/learner-styles.css", ["text/css; charset=utf-8", "learner-styles.css"]],
-		["/learner-theme.js", ["application/javascript; charset=utf-8", "learner-theme.js"]],
+		["/mentor-client.js", ["application/javascript; charset=utf-8", "mentor-client.js"]],
+		["/mentor-styles.css", ["text/css; charset=utf-8", "mentor-styles.css"]],
+		["/mentor-theme.js", ["application/javascript; charset=utf-8", "mentor-theme.js"]],
 	]);
 	if (req.method === "GET" && staticFiles.has(url.pathname)) {
 		const [contentType, fileName] = staticFiles.get(url.pathname);
@@ -365,12 +365,12 @@ submissionReader.on("line", (line) => {
 	} catch {
 		return;
 	}
-	if (event?.type === "superlearner-ack" && event.requestId) settleAck(event);
+	if (event?.type === "supermentor-ack" && event.requestId) settleAck(event);
 });
 submissionReader.on("close", () => {
 	for (const [requestId, pending] of pendingAcks) {
 		clearTimeout(pending.timeout);
-		pending.reject(new Error("superlearner launcher closed before acknowledging"));
+		pending.reject(new Error("supermentor launcher closed before acknowledging"));
 		pendingAcks.delete(requestId);
 	}
 });
@@ -378,7 +378,7 @@ submissionReader.on("close", () => {
 function requireLoopbackHost(host) {
 	const allowed = new Set(["127.0.0.1", "::1"]);
 	if (allowed.has(host)) return host;
-	process.stderr.write(`SUPERLEARNER_HOST must be loopback-only (127.0.0.1 or ::1), got: ${host}\n`);
+	process.stderr.write(`SUPERMENTOR_HOST must be loopback-only (127.0.0.1 or ::1), got: ${host}\n`);
 	process.exit(1);
 }
 
@@ -389,8 +389,8 @@ function formatUrlHost(host) {
 function startServer() {
 	ensureSessionStore();
 	server = http.createServer(handleRequest);
-	const host = requireLoopbackHost(process.env.SUPERLEARNER_HOST || "127.0.0.1");
-	const port = Number.parseInt(process.env.SUPERLEARNER_PORT || "0", 10);
+	const host = requireLoopbackHost(process.env.SUPERMENTOR_HOST || "127.0.0.1");
+	const port = Number.parseInt(process.env.SUPERMENTOR_PORT || "0", 10);
 	const lifecycleCheck = setInterval(() => {
 		if (Date.now() - lastActivityAt > idleTimeoutMs) closeServer("idle timeout");
 	}, 60 * 1000);
