@@ -6,7 +6,7 @@ The goal is not to make the agent finish a course. The goal is to help the learn
 
 ## Product stance
 
-- **Skill-first, multi-harness** — pi, OpenCode, Codex, Claude, and other clients are adapters around the same learning protocol.
+- **Skill-first, harness-aware** — v1 ships a Pi extension, reusable adapter helpers, and the same file/stdout protocol other harnesses can adopt. It does not yet ship installable OpenCode, Codex, or Claude plugins.
 - **Browser optional** — the agent should answer directly in chat for small questions. It should offer the browser companion only when comments, code anchors, progress, or section-level interaction materially improve learning.
 - **Adaptive pedagogy** — the agent chooses between explanation, walkthrough, trace, practice, project-based learning, and code intervention from user intent and learning signals, not rigid keywords.
 - **Assist, don't bypass** — the agent may write boilerplate or demonstrate code when useful, but it must keep the learning objective explicit and never silently do the conceptual work for the learner.
@@ -19,21 +19,52 @@ V1 focuses on a reusable foundation:
 1. A local HTTP server that serves a learning document from an out-of-repo cache session.
 2. A browser UI for adaptive sections, code blocks, comments, and inline replies.
 3. A filesystem side-thread protocol for browser questions and agent replies.
-4. Shared adapter helpers for pi/OpenCode-style clients.
+4. Shared adapter helpers for Pi/OpenCode-style clients, plus a packaged Pi extension.
 5. Skills that teach the agent how to route learning requests pedagogically.
+
+## Installation
+
+Installation differs by harness. Install Supermentor separately for each agent client you want to use.
+
+### Pi
+
+Supermentor currently ships a Pi package entry with skills and extension commands:
+
+```bash
+pi install https://github.com/bnema/supermentor
+```
+
+After installing, start a new Pi session. The skills are discovered from `skills/`, and the optional browser companion is available through:
+
+```text
+/supermentor-start [title]
+/supermentor-status
+/supermentor-stop
+```
+
+Use the browser companion only when a long walkthrough, code anchors, or inline comments would improve learning. For short explanations, stay in chat.
+
+### Other harnesses
+
+The package includes reusable protocol helpers in `client-shared.js`, `pi.js`, and `opencode.js`, but v1 does **not** claim a complete installable plugin for OpenCode, Codex, or Claude. Those integrations should get dedicated install docs only after their plugin APIs are verified and the adapters are functional end to end.
+
+Until then, other harnesses can still use the skills manually and can launch `server.cjs` through a custom adapter that:
+
+1. reads `server-started` and `inline-question` JSON events from stdout;
+2. injects inline questions into the active agent context;
+3. writes `supermentor-ack` JSON lines to stdin; and
+4. tells the agent to answer browser questions by writing the requested `reply.json` file.
 
 ## Session storage
 
-supermentor does **not** write session state into the current project by default. Sessions live under:
+supermentor does **not** write session state into the current project by default. Sessions live under the platform cache directory:
 
 ```text
-$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/
-```
-
-or, when `XDG_CACHE_HOME` is unset:
-
-```text
-~/.cache/supermentor/sessions/<sessionId>/
+SUPERMENTOR_CACHE_DIR/sessions/<sessionId>/          # explicit override
+$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/    # Linux/Unix when set
+~/.cache/supermentor/sessions/<sessionId>/           # Linux/Unix fallback
+~/Library/Caches/supermentor/sessions/<sessionId>/   # macOS fallback
+%LOCALAPPDATA%\supermentor\sessions\<sessionId>\    # Windows fallback
 ```
 
 A session contains:
@@ -58,7 +89,7 @@ When the learner comments on a block in the browser, the server writes a `questi
   "requestId": "req_abc123",
   "payload": {
     "threadId": "thr_abc123",
-    "question": "Pourquoi cette boucle est ici ?",
+    "question": "Why is this loop here?",
     "selection": "for (...) { ... }",
     "paths": {
       "questionPath": "/.../question.json",
@@ -77,10 +108,10 @@ Expected reply shape:
 {
   "type": "inline_reply",
   "threadId": "thr_abc123",
-  "markdown": "La boucle est ici parce que...",
+  "markdown": "This loop is here because...",
   "followups": [
-    { "label": "Déroule-moi une trace", "kind": "trace" },
-    { "label": "Donne-moi un mini-exercice", "kind": "exercise" }
+    { "label": "Walk through a trace", "kind": "trace" },
+    { "label": "Give me a mini exercise", "kind": "exercise" }
   ]
 }
 ```

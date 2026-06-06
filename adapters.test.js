@@ -1,10 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+
+const require = createRequire(import.meta.url);
+const { cacheRootFor } = require("./server.cjs");
 
 import {
 	buildSupermentorUrl,
@@ -74,6 +78,14 @@ function waitForInlineEvent(child) {
 		}, 1000).unref();
 	});
 }
+
+test("cache root follows platform cache conventions", () => {
+	assert.equal(cacheRootFor({ SUPERMENTOR_CACHE_DIR: "/tmp/custom" }, "linux", "/home/me"), "/tmp/custom");
+	assert.equal(cacheRootFor({ XDG_CACHE_HOME: "/tmp/xdg" }, "linux", "/home/me"), path.join("/tmp/xdg", "supermentor"));
+	assert.equal(cacheRootFor({}, "linux", "/home/me"), path.join("/home/me", ".cache", "supermentor"));
+	assert.equal(cacheRootFor({}, "darwin", "/Users/me"), path.join("/Users/me", "Library", "Caches", "supermentor"));
+	assert.equal(cacheRootFor({ LOCALAPPDATA: "C:\\Users\\me\\AppData\\Local" }, "win32", "C:\\Users\\me"), path.join("C:\\Users\\me\\AppData\\Local", "supermentor"));
+});
 
 test("shared URL builder preserves existing URL and adds params", () => {
 	const url = buildSupermentorUrl(

@@ -77,11 +77,14 @@ Inline question submission waits for a short launcher acknowledgement before tel
 
 ## Storage
 
-Sessions are outside the current repository:
+Sessions are outside the current repository and use a platform cache directory:
 
 ```text
-$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/
-~/.cache/supermentor/sessions/<sessionId>/
+SUPERMENTOR_CACHE_DIR/sessions/<sessionId>/          # explicit override
+$XDG_CACHE_HOME/supermentor/sessions/<sessionId>/    # Linux/Unix when set
+~/.cache/supermentor/sessions/<sessionId>/           # Linux/Unix fallback
+~/Library/Caches/supermentor/sessions/<sessionId>/   # macOS fallback
+%LOCALAPPDATA%\supermentor\sessions\<sessionId>\    # Windows fallback
 ```
 
 This matters because learning can happen from any directory, including `$HOME` or scratch folders with no git repository.

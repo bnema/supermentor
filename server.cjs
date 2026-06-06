@@ -19,11 +19,16 @@ function touchActivity() {
 	lastActivityAt = Date.now();
 }
 
+function cacheRootFor(env = process.env, platform = process.platform, home = os.homedir()) {
+	if (env.SUPERMENTOR_CACHE_DIR) return env.SUPERMENTOR_CACHE_DIR;
+	if (env.XDG_CACHE_HOME) return path.join(env.XDG_CACHE_HOME, "supermentor");
+	if (platform === "darwin") return path.join(home, "Library", "Caches", "supermentor");
+	if (platform === "win32") return path.join(env.LOCALAPPDATA || env.APPDATA || path.join(home, "AppData", "Local"), "supermentor");
+	return path.join(home, ".cache", "supermentor");
+}
+
 function cacheRoot() {
-	return (
-		process.env.SUPERMENTOR_CACHE_DIR ||
-		(path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "supermentor"))
-	);
+	return cacheRootFor();
 }
 
 function slug(value) {
@@ -357,23 +362,28 @@ async function handleRequestAsync(req, res, url) {
 	res.end("Not found");
 }
 
-const submissionReader = readline.createInterface({ input: process.stdin });
-submissionReader.on("line", (line) => {
-	let event;
-	try {
-		event = JSON.parse(line);
-	} catch {
-		return;
-	}
-	if (event?.type === "supermentor-ack" && event.requestId) settleAck(event);
-});
-submissionReader.on("close", () => {
-	for (const [requestId, pending] of pendingAcks) {
-		clearTimeout(pending.timeout);
-		pending.reject(new Error("supermentor launcher closed before acknowledging"));
-		pendingAcks.delete(requestId);
-	}
-});
+let submissionReader = null;
+
+function startSubmissionReader() {
+	if (submissionReader) return;
+	submissionReader = readline.createInterface({ input: process.stdin });
+	submissionReader.on("line", (line) => {
+		let event;
+		try {
+			event = JSON.parse(line);
+		} catch {
+			return;
+		}
+		if (event?.type === "supermentor-ack" && event.requestId) settleAck(event);
+	});
+	submissionReader.on("close", () => {
+		for (const [requestId, pending] of pendingAcks) {
+			clearTimeout(pending.timeout);
+			pending.reject(new Error("supermentor launcher closed before acknowledging"));
+			pendingAcks.delete(requestId);
+		}
+	});
+}
 
 function requireLoopbackHost(host) {
 	const allowed = new Set(["127.0.0.1", "::1"]);
@@ -388,6 +398,7 @@ function formatUrlHost(host) {
 
 function startServer() {
 	ensureSessionStore();
+	startSubmissionReader();
 	server = http.createServer(handleRequest);
 	const host = requireLoopbackHost(process.env.SUPERMENTOR_HOST || "127.0.0.1");
 	const port = Number.parseInt(process.env.SUPERMENTOR_PORT || "0", 10);
@@ -408,4 +419,4 @@ function startServer() {
 
 if (require.main === module) startServer();
 
-module.exports = { cacheRoot, createSessionId, startServer };
+module.exports = { cacheRoot, cacheRootFor, createSessionId, startServer };
