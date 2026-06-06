@@ -213,7 +213,11 @@ function createInlineQuestion(payload) {
 		createdAt: new Date().toISOString(),
 		paths: { questionPath, replyPath },
 	};
-	if (!question.question) throw new Error("question is required");
+	if (!question.question) {
+		const error = new Error("question is required");
+		error.statusCode = 400;
+		throw error;
+	}
 	writeJson(questionPath, question);
 	appendEvent({ type: "inline-question-created", requestId, threadId, blockId: question.blockId });
 	return { requestId, threadId, threadDir, question, questionPath, replyPath };

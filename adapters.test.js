@@ -197,6 +197,21 @@ test("server reports malformed JSON as a bad request", async () => {
 	}
 });
 
+test("server requires an inline question", async () => {
+	const server = await startTestServer();
+	try {
+		const result = await readJsonResponse(await fetch(`${server.started.url}api/inline-question`, {
+			method: "POST",
+			headers: { "x-superlearner-token": server.started.token, "content-type": "application/json" },
+			body: JSON.stringify({ blockId: "welcome" }),
+		}));
+		assert.equal(result.status, 400);
+		assert.equal(result.body.error, "question is required");
+	} finally {
+		await server.close();
+	}
+});
+
 test("inline question timeout returns 504 and removes the failed thread", async () => {
 	const server = await startTestServer();
 	try {

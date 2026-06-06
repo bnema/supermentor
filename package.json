@@ -25,7 +25,6 @@
     "*.d.ts",
     "skills",
     "extensions",
-    "lib",
     "docs",
     "scripts",
     "LICENSE",
@@ -36,7 +35,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.78.0"
+    "@earendil-works/pi-coding-agent": "*"
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {

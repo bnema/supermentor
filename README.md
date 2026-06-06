@@ -93,13 +93,13 @@ The browser polls the thread endpoint and renders the reply below the original c
 npm test
 ```
 
-Start the server manually:
+Start the server manually for UI/server smoke testing:
 
 ```bash
 node server.cjs
 ```
 
-The server prints a `server-started` JSON event containing the URL, session id, session directory, and token. It is intentionally loopback-only (`127.0.0.1` or `::1`) because the initial HTML page embeds the API token needed by the browser.
+The server prints a `server-started` JSON event containing the URL, session id, session directory, and token. It is intentionally loopback-only (`127.0.0.1` or `::1`) because the initial HTML page embeds the API token needed by the browser. Inline browser questions require a harness adapter to acknowledge stdout events and route the question back into the agent context; manual server mode does not provide that delivery bridge by itself.
 
 ## License
 

@@ -13,6 +13,8 @@ type Child = ReturnType<typeof spawnPiSuperlearnerServer>;
 
 type Started = SuperlearnerStartedEvent;
 
+const MAX_STDOUT_BUFFER_BYTES = 64 * 1024;
+
 type InlineQuestionEvent = {
 	type: "inline-question";
 	requestId: string;
@@ -79,6 +81,9 @@ export default function superlearnerExtension(pi: ExtensionAPI) {
 
 			current.stdout?.on("data", (chunk: Buffer) => {
 				stdoutBuffer += chunk.toString();
+				if (Buffer.byteLength(stdoutBuffer, "utf8") > MAX_STDOUT_BUFFER_BYTES) {
+					stdoutBuffer = stdoutBuffer.slice(-MAX_STDOUT_BUFFER_BYTES);
+				}
 				let newlineIndex = stdoutBuffer.indexOf("\n");
 				while (newlineIndex !== -1) {
 					const line = stdoutBuffer.slice(0, newlineIndex).trim();

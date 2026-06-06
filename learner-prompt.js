@@ -50,8 +50,10 @@ export function formatInlineQuestionPrompt(eventPayload) {
  * @returns {string}
  */
 function fence(text, language = "") {
-	const runs = String(text).match(/`+/g)?.map((run) => run.length) || [0];
+	const value = String(text);
+	const languageLabel = String(language);
+	const runs = value.match(/`+/g)?.map((run) => run.length) || [0];
 	const maxBacktickRun = Math.max(0, ...runs);
 	const backticks = "`".repeat(Math.max(3, maxBacktickRun + 1));
-	return `${backticks}${language}\n${text}\n${backticks}`;
+	return `${backticks}${languageLabel}\n${value}\n${backticks}`;
 }
