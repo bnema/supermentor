@@ -55,7 +55,7 @@ Example block pattern:
 {
   "id": "loop-code",
   "type": "code",
-  "title": "La boucle principale",
+  "title": "Main loop",
   "file": "src/server.odin",
   "startLine": 42,
   "endLine": 71,
@@ -67,7 +67,7 @@ Example block pattern:
 {
   "id": "loop-invariant",
   "type": "walkthrough-step",
-  "title": "Ce qui reste vrai à chaque tour",
+  "title": "What stays true on each iteration",
   "anchors": ["loop-code:42-71"],
   "body": "..."
 }
@@ -82,10 +82,10 @@ If the learner is trying to write or modify code, do not forbid agent edits. Use
 - demonstrate small patterns before writing full solutions;
 - when you write code, narrate the learning-relevant choices.
 
-Bad: “J’ai corrigé la fonction.”
+Bad: “I fixed the function.”
 
-Good: “Je vais ajouter ce petit helper moi-même parce que le blocage ici est mécanique. Le point à observer est que la boucle garde un accumulateur stable et ne mélange pas parsing et validation.”
+Good: “I will add this small helper because the blocker here is mechanical. The thing to notice is that the loop keeps a stable accumulator and does not mix parsing with validation.”
 
 ## Output style
 
-Use tutoiement. Prefer concrete language and examples. Introduce technical vocabulary after the learner has seen the shape of the idea.
+Use the learner's language and a patient senior-peer tone. Prefer concrete language and examples. Introduce technical vocabulary after the learner has seen the shape of the idea.

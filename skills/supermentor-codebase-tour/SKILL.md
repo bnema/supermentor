@@ -5,7 +5,7 @@ description: Use when the learner wants to understand an existing repository or 
 
 # Supermentor Codebase Tour
 
-Use this skill when Supermentor must **extract** the learning context from an existing codebase. Good signals include “je veux comprendre ce repo”, “apprends-moi cette codebase open source”, “trace le chemin d'une requête”, “où commencer ?”, or “disséquons ce projet”.
+Use this skill when Supermentor must **extract** the learning context from an existing codebase. Good signals include “I want to understand this repo”, “teach me this open-source codebase”, “trace a request path”, “where should I start?”, or “let's dissect this project”.
 
 ## Core idea
 
@@ -74,10 +74,10 @@ For public/open-source repos, tests and examples often explain behavior better t
 
 Do not only summarize. Insert small prompts:
 
-- “À ton avis, quelle fonction est appelée après celle-ci ?”
-- “Quelle donnée change entre ces deux couches ?”
-- “Si cette guard disparaît, quel test devrait casser ?”
-- “Essaie de prédire la forme du retour avant qu'on ouvre le fichier suivant.”
+- “Which function do you think is called after this one?”
+- “Which data changes between these two layers?”
+- “If this guard disappeared, which test should fail?”
+- “Try to predict the return shape before we open the next file.”
 
 Offer small safe exercises:
 
@@ -93,4 +93,4 @@ For long codebase tours, the browser companion can be valuable because the learn
 
 ## Output style
 
-Use tutoiement. Be explicit about uncertainty: “ça ressemble à…”, “je vais vérifier…”. Teach the mental model before vocabulary and architecture labels.
+Use the learner's language and a patient senior-peer tone. Be explicit about uncertainty: “this looks like…”, “I will verify…”. Teach the mental model before vocabulary and architecture labels.

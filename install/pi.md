@@ -32,6 +32,7 @@ pi install /absolute/path/to/supermentor
 Start a new Pi session. Supermentor contributes:
 
 - skills from `skills/`;
+- an agent-callable `supermentor_start` tool for integrated browser sessions;
 - extension commands from `extensions/`:
   - `/supermentor-start Learning session`
   - `/supermentor-status`
@@ -45,8 +46,10 @@ In a new Pi session, ask:
 Je veux apprendre un bout de code pas à pas.
 ```
 
-For the optional browser companion, run:
+For the optional browser companion, ask the agent to open the Supermentor browser companion or run:
 
 ```text
 /supermentor-start Learning session
 ```
+
+Do not start `server.cjs` manually for normal Pi usage. Manual startup can display a lesson, but inline browser questions need the Pi extension bridge created by `supermentor_start` or `/supermentor-start`.

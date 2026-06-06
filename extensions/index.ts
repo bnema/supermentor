@@ -50,13 +50,17 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 
 		const prompt = formatInlineQuestionPrompt(event.payload);
 		try {
-			await Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" }));
+			const delivery = Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" }));
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
 					ok: true,
-					message: "Inline question delivered to pi session",
+					message: "Inline question queued in pi session",
 				});
 			}
+			delivery.catch((error) => {
+				const message = error instanceof Error ? error.message : "Failed to deliver inline question";
+				pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor inline delivery failed: ${message}` });
+			});
 		} catch (error) {
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
@@ -67,70 +71,113 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 		}
 	}
 
-	pi.registerCommand("supermentor-start", {
-		description: "Start the supermentor browser companion (usage: /supermentor-start [title])",
-		handler: async (args, ctx) => {
-			if (child && !child.killed) {
-				ctx.ui.notify(startedUrl ? `supermentor already running: ${startedUrl}` : "supermentor is already starting", "info");
-				return;
+	async function startBrowserCompanion(title: string, ctx: any) {
+		if (child && !child.killed) {
+			if (started && startedUrl) return { ok: true, alreadyRunning: true, started, url: startedUrl, title };
+			return { ok: false, error: "supermentor is already starting" };
+		}
+
+		child = spawnPiSupermentorServer({ cwd: ctx.cwd, title, sessionID: ctx.sessionManager.getSessionId() });
+		const current = child;
+
+		current.stdout?.on("data", (chunk: Buffer) => {
+			stdoutBuffer += chunk.toString();
+			if (Buffer.byteLength(stdoutBuffer, "utf8") > MAX_STDOUT_BUFFER_BYTES) {
+				stdoutBuffer = stdoutBuffer.slice(-MAX_STDOUT_BUFFER_BYTES);
 			}
-
-			const title = args.trim() || "Supermentor session";
-			child = spawnPiSupermentorServer({ cwd: ctx.cwd, title, sessionID: ctx.sessionManager.getSessionId() });
-			const current = child;
-
-			current.stdout?.on("data", (chunk: Buffer) => {
-				stdoutBuffer += chunk.toString();
-				if (Buffer.byteLength(stdoutBuffer, "utf8") > MAX_STDOUT_BUFFER_BYTES) {
-					stdoutBuffer = stdoutBuffer.slice(-MAX_STDOUT_BUFFER_BYTES);
-				}
-				let newlineIndex = stdoutBuffer.indexOf("\n");
-				while (newlineIndex !== -1) {
-					const line = stdoutBuffer.slice(0, newlineIndex).trim();
-					stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
-					if (line) void handleStdoutLine(line);
-					newlineIndex = stdoutBuffer.indexOf("\n");
-				}
-			});
-
-			let stderr = "";
-			current.stderr?.on("data", (chunk: Buffer) => {
-				stderr = (stderr + chunk.toString()).slice(-2048);
-			});
-			current.once("exit", (code: number | null, signal: string | null) => {
-				if (child === current) {
-					child = null;
-					started = null;
-					startedUrl = null;
-				}
-				if (code && code !== 0) ctx.ui.notify(`supermentor exited (${code}${signal ? ` ${signal}` : ""}) ${stderr}`.trim(), "warning");
-			});
-
-			try {
-				started = (await waitForServerStarted(current)) as Started;
-			} catch (error) {
-				if (child === current) stopServer();
-				const message = error instanceof Error ? error.message : "supermentor failed to start";
-				const details = stderr.trim() ? `: ${stderr.trim().split("\n").at(-1)}` : "";
-				ctx.ui.notify(`${message}${details}`, "error");
-				return;
+			let newlineIndex = stdoutBuffer.indexOf("\n");
+			while (newlineIndex !== -1) {
+				const line = stdoutBuffer.slice(0, newlineIndex).trim();
+				stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
+				if (line) void handleStdoutLine(line);
+				newlineIndex = stdoutBuffer.indexOf("\n");
 			}
+		});
 
-			const url = buildPiSupermentorUrl(started);
-			startedUrl = url;
-			ctx.ui.notify(`supermentor ready: ${url}`, "info");
-			pi.appendEntry("supermentor-session", { ...started, url, title });
-			pi.sendMessage({
-				customType: "supermentor-session",
-				display: true,
+		let stderr = "";
+		current.stderr?.on("data", (chunk: Buffer) => {
+			stderr = (stderr + chunk.toString()).slice(-2048);
+		});
+		current.once("exit", (code: number | null, signal: string | null) => {
+			if (child === current) {
+				child = null;
+				started = null;
+				startedUrl = null;
+			}
+			if (code && code !== 0) pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor exited (${code}${signal ? ` ${signal}` : ""}) ${stderr}`.trim() });
+		});
+
+		try {
+			started = (await waitForServerStarted(current)) as Started;
+		} catch (error) {
+			if (child === current) stopServer();
+			const message = error instanceof Error ? error.message : "supermentor failed to start";
+			const details = stderr.trim() ? `: ${stderr.trim().split("\n").at(-1)}` : "";
+			return { ok: false, error: `${message}${details}` };
+		}
+
+		const url = buildPiSupermentorUrl(started);
+		startedUrl = url;
+		pi.appendEntry("supermentor-session", { ...started, url, title });
+		pi.sendMessage({
+			customType: "supermentor-session",
+			display: true,
+			content: [
+				`supermentor browser companion started: ${url}`,
+				`Session directory: ${started.sessionDir}`,
+				`To publish or update the lesson, write a learning-document JSON to: ${started.sessionDir}/lesson.json`,
+				"Inline questions from the browser will arrive as side-thread prompts. Answer them by writing the requested reply.json file.",
+			].join("\n"),
+			details: { ...started, url, title },
+		});
+		return { ok: true, alreadyRunning: false, started, url, title };
+	}
+
+	pi.registerTool({
+		name: "supermentor_start",
+		label: "Supermentor Start",
+		description: "Start or reuse the integrated Supermentor browser companion for a learning session.",
+		promptSnippet: "Start or reuse the Supermentor browser companion and return its URL/session directory.",
+		promptGuidelines: [
+			"Use supermentor_start when a learning request is broad enough that a browser lesson would be easier to follow than a long terminal response.",
+			"Use supermentor_start when the user asks to start the Supermentor server, open the browser companion, or make the lesson commentable.",
+			"Do not start Supermentor manually with bash in Pi; use supermentor_start so inline browser questions can route back into the active session.",
+		],
+		parameters: {
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				title: { type: "string", description: "Short title for the learning session" },
+			},
+		} as any,
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const title = params.title?.trim() || "Supermentor session";
+			const result = await startBrowserCompanion(title, ctx);
+			if (!result.ok) {
+				return { content: [{ type: "text", text: `Failed to start Supermentor: ${result.error}` }], details: result, isError: true };
+			}
+			return {
 				content: [
-					`supermentor browser companion started: ${url}`,
-					`Session directory: ${started.sessionDir}`,
-					`To publish or update the lesson, write a learning-document JSON to: ${started.sessionDir}/lesson.json`,
-					"Inline questions from the browser will arrive as side-thread prompts. Answer them by writing the requested reply.json file.",
-				].join("\n"),
-				details: { ...started, url, title },
-			});
+					{
+						type: "text",
+						text: `${result.alreadyRunning ? "Supermentor already running" : "Supermentor started"}: ${result.url}\nSession directory: ${result.started?.sessionDir}`,
+					},
+				],
+				details: result,
+			};
+		},
+	});
+
+	pi.registerCommand("supermentor-start", {
+		description: "Start the supermentor browser companion (usage: /supermentor-start Learning session)",
+		handler: async (args, ctx) => {
+			const title = args.trim() || "Supermentor session";
+			const result = await startBrowserCompanion(title, ctx);
+			if (!result.ok) {
+				ctx.ui.notify(result.error || "supermentor failed to start", "error");
+				return;
+			}
+			ctx.ui.notify(result.url ? `supermentor ready: ${result.url}` : "supermentor is already starting", "info");
 		},
 	});
 

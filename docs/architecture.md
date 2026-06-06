@@ -134,12 +134,12 @@ The default voice is tutoiement: a patient senior peer, not a school teacher. Av
 
 Client integrations do not all expose the same extension features:
 
-- **Pi** supports Supermentor skills plus extension commands for the browser companion.
+- **Pi** supports Supermentor skills plus an agent-callable `supermentor_start` tool and extension commands for the browser companion.
 - **OpenCode** currently registers skills and bootstrap instructions; the browser bridge is not claimed as supported yet.
 - **Claude Code** currently uses Supermentor as a local skills-directory plugin; the browser bridge is not claimed as supported yet.
 - **Codex** currently uses local skill installation; the browser bridge is not claimed as supported yet.
 
-This means Supermentor docs and skills must not require commands such as `/supermentor-start` for core learning. They may mention commands only as optional features where the client supports them.
+This means Supermentor docs and skills must not require commands such as `/supermentor-start` for core learning. They may mention commands only as optional features where the client supports them. In Pi, integrated browser sessions should be started by `supermentor_start` or `/supermentor-start`; starting `server.cjs` manually bypasses the inline-question bridge.
 
 ## Browser companion offer
 

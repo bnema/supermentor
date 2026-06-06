@@ -10,7 +10,7 @@ Supermentor is **skill-first and command-optional**. The portable workflow is na
 
 - **Teaching skills** that tell the agent when to explain, trace, dissect code, map a codebase, run a lab, teach through a guided project, or scaffold setup.
 - **Local install helpers** for Pi, OpenCode, Claude Code, and Codex.
-- **Optional Pi browser companion** with `/supermentor-start`, `/supermentor-status`, and `/supermentor-stop`.
+- **Optional Pi browser companion** with the agent-callable `supermentor_start` tool and `/supermentor-start`, `/supermentor-status`, `/supermentor-stop` commands.
 - **A local HTTP server and file protocol** for browser lessons and inline comments.
 - **Reusable adapter helpers** for future harness bridges.
 
@@ -93,7 +93,7 @@ Useful references:
 
 ### Pi browser companion
 
-After installing in Pi, start a new Pi session and run:
+After installing in Pi, the agent can start the integrated browser companion with the `supermentor_start` tool when a lesson would be easier to follow in the browser. You can also start it manually in a new Pi session:
 
 ```text
 /supermentor-start Learning session
@@ -101,7 +101,7 @@ After installing in Pi, start a new Pi session and run:
 /supermentor-stop
 ```
 
-Use the browser companion for long walkthroughs, code anchors, or inline comments. For short explanations, or in clients without a tested browser bridge, stay in chat.
+Use the browser companion for long walkthroughs, code anchors, or inline comments. In Pi, prefer the integrated tool or command over launching `server.cjs` manually; manual server startup displays lessons but cannot route inline browser questions back into the active agent session. For short explanations, or in clients without a tested browser bridge, stay in chat.
 
 ## Session storage
 
