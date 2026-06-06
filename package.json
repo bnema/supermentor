@@ -33,10 +33,11 @@
     "scripts",
     "assets",
     "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
     "README.md"
   ],
   "scripts": {
-    "test": "node --test adapters.test.js",
+    "test": "node --test adapters.test.js mentor-client.test.js",
     "smoke": "node scripts/smoke.mjs"
   },
   "peerDependencies": {

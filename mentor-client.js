@@ -14,14 +14,15 @@ function clamp(value, min, max) {
 	return Math.min(max, Math.max(min, value));
 }
 
-const bootstrap = readBootstrap();
+const bootstrap = typeof document === "undefined" ? {} : readBootstrap();
 const headers = { "x-supermentor-token": bootstrap.token };
 let currentLesson = null;
 let currentThreads = [];
 let pollTimers = new Map();
 let outlineObserver = null;
+let visibleOutlineTargets = new Map();
 
-function escapeHtml(value) {
+export function escapeHtml(value) {
 	return String(value ?? "")
 		.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")
@@ -30,7 +31,7 @@ function escapeHtml(value) {
 		.replace(/'/g, "&#039;");
 }
 
-function slug(value, fallback) {
+export function slug(value, fallback) {
 	return String(value || fallback)
 		.toLowerCase()
 		.replace(/[^a-z0-9_-]+/g, "-")
@@ -68,8 +69,8 @@ function languageFromBlock(block = {}) {
 	}[ext] || "";
 }
 
-function highlightedHtml(code, language) {
-	const hljs = window.hljs;
+export function highlightedHtml(code, language, highlighter = globalThis.hljs) {
+	const hljs = highlighter;
 	if (!hljs) return escapeHtml(code);
 	try {
 		if (language && hljs.getLanguage(language)) return hljs.highlight(code, { language }).value;
@@ -181,11 +182,11 @@ function renderThread(thread) {
 	</article>`;
 }
 
-function isChildBlock(block) {
+export function isChildBlock(block) {
 	return block.type === "code" || block.type === "walkthrough-step" || Array.isArray(block.anchors);
 }
 
-function buildSections(blocks) {
+export function buildSections(blocks) {
 	const sections = [];
 	for (const [index, block] of blocks.entries()) {
 		const id = block.id || `block-${index + 1}`;
@@ -197,6 +198,42 @@ function buildSections(blocks) {
 		sections[sections.length - 1].children.push(normalized);
 	}
 	return sections;
+}
+
+export function resolveAnchors(block, blocks = []) {
+	const anchors = Array.isArray(block?.anchors) ? block.anchors : [];
+	return anchors.map((anchor) => {
+		const raw = String(anchor);
+		const [, targetId, start, end] = raw.match(/^([^:]+)(?::(\d+)(?:-(\d+))?)?$/) || [];
+		const target = blocks.find((item) => (item.id || "") === targetId) || {};
+		return {
+			raw,
+			blockId: targetId || raw,
+			file: target.file || null,
+			startLine: start ? Number(start) : target.startLine || null,
+			endLine: end ? Number(end) : start ? Number(start) : target.endLine || null,
+		};
+	});
+}
+
+export function buildInlineQuestionPayload({ lesson, bootstrap, blockId, selection, question }) {
+	const blocks = Array.isArray(lesson?.blocks) ? lesson.blocks : [];
+	const lessonBlock = blocks.find((item) => (item.id || "") === blockId) || {};
+	const resolvedAnchors = resolveAnchors(lessonBlock, blocks);
+	return {
+		lessonId: lesson?.lessonId || lesson?.id || bootstrap?.sessionId,
+		blockId,
+		anchor: {
+			blockId,
+			file: lessonBlock.file || resolvedAnchors[0]?.file || null,
+			startLine: lessonBlock.startLine || resolvedAnchors[0]?.startLine || null,
+			endLine: lessonBlock.endLine || resolvedAnchors[0]?.endLine || null,
+			anchors: Array.isArray(lessonBlock.anchors) ? lessonBlock.anchors : [],
+			resolvedAnchors,
+		},
+		selection,
+		question,
+	};
 }
 
 function renderCommentArea(blockId) {
@@ -284,16 +321,22 @@ function setActiveOutlineItem(id) {
 
 function initOutlineScrollSpy(root) {
 	outlineObserver?.disconnect();
+	visibleOutlineTargets = new Map();
 	const targets = [...root.querySelectorAll(".sm-section[id], .sm-subblock[id]")];
 	if (!targets.length) return;
 	let activeId = "";
-	outlineObserver = new IntersectionObserver((entries) => {
-		const visible = entries
+	const activateClosestVisible = () => {
+		const visible = [...visibleOutlineTargets.values()]
 			.filter((entry) => entry.isIntersecting)
 			.sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top))[0];
-		if (!visible || visible.target.id === activeId) return;
-		activeId = visible.target.id;
+		const nextId = visible?.target.id || location.hash.slice(1) || targets[0].id;
+		if (!nextId || nextId === activeId) return;
+		activeId = nextId;
 		setActiveOutlineItem(activeId);
+	};
+	outlineObserver = new IntersectionObserver((entries) => {
+		for (const entry of entries) visibleOutlineTargets.set(entry.target.id, entry);
+		activateClosestVisible();
 	}, { rootMargin: "-18% 0px -68% 0px", threshold: [0, 0.1, 0.4] });
 	for (const target of targets) outlineObserver.observe(target);
 	setActiveOutlineItem(location.hash.slice(1) || targets[0].id);
@@ -312,6 +355,7 @@ function bindLessonEvents(root) {
 			composer.hidden = false;
 			clearComposerError(composer);
 			const selected = selectedTextInside(block);
+			composer.dataset.selection = selected;
 			const textarea = composer.querySelector("textarea");
 			textarea.focus();
 			if (selected && !textarea.value) textarea.placeholder = `Question about: ${selected.slice(0, 160)}`;
@@ -322,6 +366,7 @@ function bindLessonEvents(root) {
 			const composer = button.closest(".sm-composer");
 			composer.hidden = true;
 			composer.querySelector("textarea").value = "";
+			delete composer.dataset.selection;
 			clearComposerError(composer);
 		});
 	});
@@ -336,26 +381,16 @@ function bindLessonEvents(root) {
 			try {
 				clearComposerError(composer);
 				const blockId = block.dataset.blockId;
-				const lessonBlock = (currentLesson.blocks || []).find((item) => (item.id || "") === blockId) || {};
-				const selection = selectedTextInside(block) || "";
+				const selection = composer.dataset.selection || selectedTextInside(block) || "";
+				const payload = buildInlineQuestionPayload({ lesson: currentLesson, bootstrap, blockId, selection, question });
 				const result = await api("/api/inline-question", {
 					method: "POST",
-					body: JSON.stringify({
-						lessonId: currentLesson.lessonId || currentLesson.id || bootstrap.sessionId,
-						blockId,
-						anchor: {
-							blockId,
-							file: lessonBlock.file || null,
-							startLine: lessonBlock.startLine || null,
-							endLine: lessonBlock.endLine || null,
-						},
-						selection,
-						question,
-					}),
+					body: JSON.stringify(payload),
 				});
 				currentThreads.push({ threadId: result.threadId, question: { threadId: result.threadId, blockId, question, selection }, reply: null });
 				composer.hidden = true;
 				textarea.value = "";
+				delete composer.dataset.selection;
 				renderLesson();
 				startThreadPolling(result.threadId);
 			} catch (error) {
@@ -401,15 +436,16 @@ async function loadSession() {
 
 function initSidebarResize() {
 	const resizer = document.getElementById("sidebar-resizer");
+	const maxSidebarWidth = () => Math.min(448, window.innerWidth * 0.38);
 	const saved = Number(localStorage.getItem("supermentor:sidebar-width"));
-	if (Number.isFinite(saved)) document.documentElement.style.setProperty("--sidebar-width", `${clamp(saved, 220, 520)}px`);
+	if (Number.isFinite(saved)) document.documentElement.style.setProperty("--sidebar-width", `${clamp(saved, 220, maxSidebarWidth())}px`);
 	resizer?.addEventListener("pointerdown", (event) => {
 		if (window.matchMedia("(max-width: 720px)").matches) return;
 		event.preventDefault();
 		document.body.classList.add("is-resizing-sidebar");
 		console.debug("supermentor sidebar resize start");
 		const move = (moveEvent) => {
-			const width = clamp(moveEvent.clientX, 220, Math.min(560, window.innerWidth * 0.45));
+			const width = clamp(moveEvent.clientX, 220, maxSidebarWidth());
 			document.documentElement.style.setProperty("--sidebar-width", `${width}px`);
 			localStorage.setItem("supermentor:sidebar-width", String(width));
 		};
@@ -427,10 +463,12 @@ function initSidebarResize() {
 	});
 }
 
-initTheme({ document, storage: localStorage });
-initSidebarResize();
-document.getElementById("theme-toggle")?.addEventListener("click", () => toggleTheme({ document, storage: localStorage }));
-document.getElementById("refresh")?.addEventListener("click", () => loadSession().catch(console.error));
-loadSession().catch((error) => {
-	document.getElementById("lesson-view").innerHTML = `<section class="sm-error">${escapeHtml(error.message)}</section>`;
-});
+if (typeof document !== "undefined") {
+	initTheme({ document, storage: localStorage });
+	initSidebarResize();
+	document.getElementById("theme-toggle")?.addEventListener("click", () => toggleTheme({ document, storage: localStorage }));
+	document.getElementById("refresh")?.addEventListener("click", () => loadSession().catch(console.error));
+	loadSession().catch((error) => {
+		document.getElementById("lesson-view").innerHTML = `<section class="sm-error">${escapeHtml(error.message)}</section>`;
+	});
+}

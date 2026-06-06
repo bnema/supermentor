@@ -18,7 +18,7 @@
   --selected-bg: rgba(10, 132, 255, 0.14);
   --thread-bg: rgba(10, 132, 255, 0.08);
   --content-width: 68rem;
-  --sidebar-width: clamp(15rem, 24vw, 21rem);
+  --sidebar-width: clamp(14rem, 22vw, 19rem);
 }
 
 :root[data-theme="light"] {
@@ -26,7 +26,7 @@
   --bg-primary: #f6f6f7;
   --bg-secondary: #ffffff;
   --bg-tertiary: #ececef;
-  --surface-soft: rgba(0, 0, 0, 0.025);
+  --surface-soft: rgba(0, 0, 0, 0.035);
   --border: #d8d8de;
   --border-soft: rgba(0, 0, 0, 0.08);
   --text-primary: #1d1d1f;
@@ -45,8 +45,7 @@
 html, body { margin: 0; min-height: 100%; }
 html { scroll-behavior: smooth; }
 body {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  display: flex;
   min-height: 100vh;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -82,7 +81,10 @@ button img {
 #lesson-outline {
   position: sticky;
   top: 0;
-  align-self: start;
+  flex: 0 0 var(--sidebar-width);
+  width: var(--sidebar-width);
+  min-width: 12.5rem;
+  max-width: min(28rem, 38vw);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -120,7 +122,7 @@ body.is-resizing-sidebar {
 }
 .sm-sidebar-main {
   overflow: auto;
-  padding: 1rem;
+  padding: 0.9rem 0.8rem;
 }
 .sm-sidebar-footer {
   display: flex;
@@ -144,8 +146,8 @@ body.is-resizing-sidebar {
   word-break: break-all;
   margin-bottom: 1rem;
 }
-#lesson-outline nav { display: grid; gap: 0.55rem; }
-.sm-outline-section { display: grid; gap: 0.25rem; }
+#lesson-outline nav { display: grid; gap: 0.35rem; }
+.sm-outline-section { display: grid; gap: 0.15rem; }
 #lesson-outline a {
   color: var(--text-secondary);
   text-decoration: none;
@@ -165,39 +167,48 @@ body.is-resizing-sidebar {
 }
 .sm-outline-main {
   display: grid;
-  grid-template-columns: 1.6rem minmax(0, 1fr);
-  gap: 0.55rem;
-  align-items: start;
-  padding: 0.42rem 0.5rem;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.38rem;
+  align-items: center;
+  padding: 0.42rem 0.48rem;
   font-weight: 650;
+  line-height: 1.24;
 }
 .sm-outline-main span {
+  align-self: center;
   color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 .sm-outline-children {
   display: grid;
-  gap: 0.1rem;
-  margin-left: 2.15rem;
-  padding-left: 0.7rem;
+  gap: 0.05rem;
+  margin-left: 1.18rem;
+  padding-left: 0.55rem;
   border-left: 1px solid var(--border-soft);
 }
 .sm-outline-children a {
-  display: grid;
-  grid-template-columns: 4.8rem minmax(0, 1fr);
-  gap: 0.45rem;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.84rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.2rem 0.38rem;
+  font-size: 0.83rem;
+  line-height: 1.25;
 }
 .sm-outline-children span {
+  flex: 0 0 auto;
   color: var(--text-tertiary);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
-main { min-width: 0; }
+main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .sm-topbar {
   border-bottom: 1px solid var(--border-soft);
   padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 2.5rem) 1rem;
@@ -292,7 +303,7 @@ main { min-width: 0; }
 }
 .sm-subblock {
   padding: 0.95rem 0 0.95rem clamp(0.8rem, 2vw, 1.2rem);
-  background: linear-gradient(90deg, var(--surface-soft), transparent 80%);
+  background: var(--surface-soft);
 }
 .sm-subblock-heading {
   margin-bottom: 0.65rem;
@@ -394,10 +405,11 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
 .sm-error { color: var(--error); background: var(--bg-secondary); border: 1px solid var(--error); border-radius: 0.8rem; padding: 1rem; }
 
 @media (max-width: 920px) {
-  body { grid-template-columns: 13.5rem minmax(0, 1fr); }
-  .sm-sidebar-main { padding: 0.8rem; }
-  .sm-outline-children { margin-left: 1.4rem; }
-  .sm-outline-children a { grid-template-columns: 1fr; gap: 0.05rem; }
+  #lesson-outline { max-width: min(22rem, 40vw); }
+  .sm-sidebar-main { padding: 0.8rem 0.65rem; }
+  .sm-outline-main { gap: 0.32rem; padding-inline: 0.42rem; }
+  .sm-outline-children { margin-left: 1rem; padding-left: 0.45rem; }
+  .sm-outline-children a { gap: 0.3rem; }
   .sm-outline-children span { display: none; }
 }
 
@@ -405,6 +417,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
   body { display: block; --sidebar-width: auto; }
   #lesson-outline {
     position: static;
+    width: auto;
+    max-width: none;
+    min-width: 0;
     height: auto;
     max-height: 42vh;
     border-right: 0;

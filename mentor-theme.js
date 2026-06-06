@@ -13,6 +13,8 @@ export function setTheme({ document, storage }, theme) {
 	const value = theme === "light" ? "light" : "dark";
 	document.documentElement.dataset.theme = value;
 	document.documentElement.style.colorScheme = value;
+	const highlightTheme = document.getElementById("highlight-theme");
+	if (highlightTheme) highlightTheme.href = value === "light" ? "/assets/highlight-github-light.min.css" : "/assets/highlight-github-dark.min.css";
 	try {
 		storage?.setItem?.("supermentor:theme", value);
 	} catch {}
