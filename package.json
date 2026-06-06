@@ -1,6 +1,6 @@
 {
   "name": "supermentor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Adaptive mentorship skills and a local browser companion that help coding agents teach humans",
   "license": "MIT",
   "type": "module",

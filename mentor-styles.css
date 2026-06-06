@@ -331,6 +331,7 @@ pre {
   border-radius: 0.85rem;
   overflow: auto;
 }
+:root[data-theme="light"] pre { background: #f6f8fa; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 .sm-code { padding: 0; }
 .sm-code code.hljs {
