@@ -59,6 +59,7 @@ async function runSmoke(started) {
 	}).then((response) => response.json());
 	if (session.lesson.title !== "Smoke lesson") throw new Error("lesson title mismatch");
 
+	const inlineEventPromise = waitForInlineQuestion();
 	const submit = fetch(`${started.url}api/inline-question`, {
 		method: "POST",
 		headers: {
@@ -68,7 +69,7 @@ async function runSmoke(started) {
 		body: JSON.stringify({ blockId: "welcome", question: "Pourquoi ?", selection: "texte" }),
 	});
 
-	const inlineEvent = await waitForInlineQuestion();
+	const inlineEvent = await inlineEventPromise;
 	child.stdin.write(`${JSON.stringify({ type: "supermentor-ack", requestId: inlineEvent.requestId, ok: true, message: "delivered" })}\n`);
 	const submitted = await submit.then((response) => response.json());
 	if (!submitted.delivered) throw new Error("inline question was not acknowledged");
@@ -76,16 +77,35 @@ async function runSmoke(started) {
 	const questionPath = inlineEvent.payload.paths.questionPath;
 	const replyPath = inlineEvent.payload.paths.replyPath;
 	if (!fs.existsSync(questionPath)) throw new Error("question file was not written");
-	fs.writeFileSync(replyPath, `${JSON.stringify({ type: "inline_reply", threadId: submitted.threadId, markdown: "Réponse." })}\n`);
+	fs.writeFileSync(replyPath, `${JSON.stringify({ type: "inline_reply", threadId: submitted.threadId, markdown: "Reply." })}\n`);
 
 	const thread = await fetch(`${started.url}api/threads/${submitted.threadId}`, {
 		headers: { "x-supermentor-token": started.token },
 	}).then((response) => response.json());
-	if (thread.reply.markdown !== "Réponse.") throw new Error("reply was not returned");
+	if (thread.reply.markdown !== "Reply.") throw new Error("reply was not returned");
+
+	const actionEventPromise = waitForEvent("agent-action");
+	const actionSubmit = fetch(`${started.url}api/agent-action`, {
+		method: "POST",
+		headers: {
+			"x-supermentor-token": started.token,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ lessonId: "smoke", blockId: "welcome", stepId: "step-1", action: "struggling", label: "I'm struggling", files: ["server.cjs"], successCriteria: "Understand the smoke path." }),
+	});
+	const actionEvent = await actionEventPromise;
+	child.stdin.write(`${JSON.stringify({ type: "supermentor-ack", requestId: actionEvent.requestId, ok: true, message: "delivered" })}\n`);
+	const actionSubmitted = await actionSubmit.then((response) => response.json());
+	if (!actionSubmitted.delivered) throw new Error("agent action was not acknowledged");
+	if (!fs.existsSync(actionEvent.payload.paths.questionPath)) throw new Error("agent action question file was not written");
 	finish(0, `supermentor smoke ok ${started.sessionId}`);
 }
 
 function waitForInlineQuestion() {
+	return waitForEvent("inline-question");
+}
+
+function waitForEvent(type) {
 	return new Promise((resolve, reject) => {
 		let buffer = stdout;
 		const scan = () => {
@@ -99,7 +119,7 @@ function waitForInlineQuestion() {
 				} catch {
 					continue;
 				}
-				if (event.type === "inline-question") return event;
+				if (event.type === type) return event;
 			}
 			return null;
 		};
@@ -119,7 +139,7 @@ function waitForInlineQuestion() {
 		child.stdout.on("data", onData);
 		setTimeout(() => {
 			child.stdout.off("data", onData);
-			reject(new Error("inline-question event timeout"));
+			reject(new Error(`${type} event timeout`));
 		}, 3000).unref();
 	});
 }

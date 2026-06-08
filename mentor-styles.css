@@ -17,7 +17,7 @@
   --error: #ff453a;
   --selected-bg: rgba(10, 132, 255, 0.14);
   --thread-bg: rgba(10, 132, 255, 0.08);
-  --content-width: 68rem;
+  --content-width: 58rem;
   --sidebar-width: clamp(14rem, 22vw, 19rem);
 }
 
@@ -170,11 +170,11 @@ body.is-resizing-sidebar {
   text-transform: uppercase;
   margin-bottom: 0.3rem;
 }
-.sm-session-id {
-  color: var(--text-tertiary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.74rem;
-  word-break: break-all;
+.sm-session-title {
+  color: var(--text-secondary);
+  font-weight: 650;
+  font-size: 0.92rem;
+  line-height: 1.25;
   margin-bottom: 1rem;
 }
 #lesson-outline nav { display: grid; gap: 0.35rem; }
@@ -349,8 +349,60 @@ main {
   font-size: 0.7rem;
   font-weight: 700;
 }
+.sm-block-body p,
+.sm-block-body ul,
+.sm-block-body ol {
+  max-width: 72ch;
+}
 .sm-block-body p { margin: 0 0 0.85rem; }
 .sm-block-body p:last-child { margin-bottom: 0; }
+.sm-exercise-step-content {
+  display: grid;
+  gap: 1rem;
+}
+.sm-exercise-step-content > div:not(.sm-exercise-actions) {
+  max-width: 72ch;
+}
+.sm-exercise-step-content strong {
+  display: block;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+.sm-exercise-overview {
+  color: var(--text-secondary);
+}
+.sm-exercise-files ul,
+.sm-exercise-criteria ul,
+.sm-exercise-instructions ul,
+.sm-exercise-constraints ul,
+.sm-exercise-hints ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.2rem;
+}
+.sm-exercise-files li,
+.sm-exercise-criteria li,
+.sm-exercise-instructions li,
+.sm-exercise-constraints li,
+.sm-exercise-hints li { margin: 0.2rem 0; }
+.sm-exercise-hints {
+  color: var(--text-secondary);
+}
+.sm-exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.sm-exercise-actions button.action-warning { border-color: var(--warning); }
+.sm-exercise-actions button.action-success { border-color: var(--success); }
+.sm-exercise-actions button.is-loading { opacity: 0.7; }
+.sm-exercise-error {
+  max-width: 72ch;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--error);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
 .sm-block-body code:not(.hljs) {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-soft);

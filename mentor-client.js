@@ -1,3 +1,4 @@
+import { defaultExerciseActions, normalizeStringList } from "./exercise-contract.js";
 import { initTheme, toggleTheme } from "./mentor-theme.js";
 
 function $(selector, root = document) {
@@ -107,11 +108,82 @@ function blockLabel(type) {
 		concept: "Concept",
 		code: "Code",
 		"walkthrough-step": "Step",
+		"exercise-step": "Exercise step",
 		exercise: "Exercise",
 		prediction: "Prediction",
 		recap: "Key takeaway",
 		trace: "Trace",
 	}[type] || "Section";
+}
+
+
+function normalizeExerciseFiles(value) {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => {
+			if (typeof item === "string") return { path: item };
+			if (!item || typeof item !== "object") return null;
+			const path = item.path || item.file || item.name;
+			return path ? { ...item, path: String(path) } : null;
+		})
+		.filter(Boolean);
+}
+
+export function normalizeExerciseStep(block = {}, index = 0) {
+	const id = block.id || block.stepId || slug(block.title || block.goal || `exercise-step-${index + 1}`, `exercise-step-${index + 1}`);
+	return normalizeExerciseStepWithId(block, id);
+}
+
+function normalizeExerciseStepWithId(block = {}, id) {
+	return {
+		...block,
+		type: "exercise-step",
+		id,
+		blockId: block.blockId || id,
+		stepId: block.stepId || id,
+		title: block.title || "Exercise step",
+		goal: block.goal || "",
+		instructions: normalizeStringList(block.instructions),
+		constraints: normalizeStringList(block.constraints || block.rules),
+		hints: normalizeStringList(block.hints),
+		successCriteria: normalizeStringList(block.successCriteria || block.success_criteria || block.criteria),
+		files: normalizeExerciseFiles(block.files),
+		actions: defaultExerciseActions(),
+	};
+}
+
+function isExerciseLikeBlock(block) {
+	if (!block || typeof block !== "object") return false;
+	if (block.type === "exercise-step") return true;
+	if (block.type !== "exercise") return false;
+	return Boolean(block.goal || block.instructions || block.successCriteria || block.success_criteria || block.criteria || block.files || block.actions);
+}
+
+function uniqueBlockId(rawId, seenIds, fallback) {
+	const base = slug(rawId || fallback, fallback);
+	let candidate = base;
+	let suffix = 1;
+	while (seenIds.has(candidate)) candidate = `${base}-${suffix++}`;
+	seenIds.add(candidate);
+	return candidate;
+}
+
+export function normalizeLessonBlocks(blocks = []) {
+	const seenIds = new Set();
+	return blocks.map((block, index) => {
+		const fallback = `block-${index + 1}`;
+		if (isExerciseLikeBlock(block)) {
+			const originalId = block.id || block.stepId || block.title || block.goal;
+			const id = uniqueBlockId(originalId, seenIds, `exercise-step-${index + 1}`);
+			return normalizeExerciseStepWithId(block, id);
+		}
+		if (block && typeof block === "object") {
+			const id = uniqueBlockId(block.id, seenIds, fallback);
+			return { ...block, id };
+		}
+		const id = uniqueBlockId(fallback, seenIds, fallback);
+		return { id, type: "note", body: String(block ?? "") };
+	});
 }
 
 async function api(path, options = {}) {
@@ -161,8 +233,10 @@ function renderCodeBlock(block) {
 	return `<pre class="sm-code"><code class="hljs${languageClass}">${highlighted}</code></pre>`;
 }
 
-function threadsForBlock(blockId) {
-	return currentThreads.filter((thread) => thread.question?.blockId === blockId);
+function threadsForBlock(block) {
+	const blockId = typeof block === "string" ? block : block?.id;
+	const stepId = typeof block === "string" ? "" : block?.stepId;
+	return currentThreads.filter((thread) => thread.question?.blockId === blockId || (stepId && thread.question?.stepId === stepId));
 }
 
 function renderThread(thread) {
@@ -171,7 +245,7 @@ function renderThread(thread) {
 	return `<article class="sm-thread" data-thread-id="${escapeHtml(thread.threadId)}">
 		<div class="sm-thread-question">
 			<strong>Question</strong>
-			<p>${renderInlineMarkdown(question.question || "")}</p>
+			<p>${renderInlineMarkdown(question.question || question.label || "")}</p>
 			${question.selection ? `<blockquote>${renderInlineMarkdown(question.selection)}</blockquote>` : ""}
 		</div>
 		<div class="sm-thread-reply ${reply ? "" : "is-pending"}">
@@ -188,9 +262,8 @@ export function isChildBlock(block) {
 
 export function buildSections(blocks) {
 	const sections = [];
-	for (const [index, block] of blocks.entries()) {
-		const id = block.id || `block-${index + 1}`;
-		const normalized = { ...block, id };
+	for (const block of normalizeLessonBlocks(blocks)) {
+		const normalized = block;
 		if (!sections.length || !isChildBlock(normalized)) {
 			sections.push({ id: `section-${slug(normalized.id, String(sections.length + 1))}`, lead: normalized, children: [] });
 			continue;
@@ -217,7 +290,7 @@ export function resolveAnchors(block, blocks = []) {
 }
 
 export function buildInlineQuestionPayload({ lesson, bootstrap, blockId, selection, question }) {
-	const blocks = Array.isArray(lesson?.blocks) ? lesson.blocks : [];
+	const blocks = normalizeLessonBlocks(Array.isArray(lesson?.blocks) ? lesson.blocks : []);
 	const lessonBlock = blocks.find((item) => (item.id || "") === blockId) || {};
 	const resolvedAnchors = resolveAnchors(lessonBlock, blocks);
 	return {
@@ -236,7 +309,30 @@ export function buildInlineQuestionPayload({ lesson, bootstrap, blockId, selecti
 	};
 }
 
-function renderCommentArea(blockId) {
+export function buildExerciseActionPayload({ lesson, bootstrap, blockId, stepId, action, label, selection = "", question = "" }) {
+	const blocks = normalizeLessonBlocks(Array.isArray(lesson?.blocks) ? lesson.blocks : []);
+	const block = blocks.find((item) => (item.id || "") === blockId || (item.stepId || "") === stepId) || {};
+	return {
+		lessonId: lesson?.lessonId || lesson?.id || bootstrap?.sessionId,
+		blockId: block.id || blockId,
+		parentBlockId: block.blockId && block.blockId !== block.id ? block.blockId : null,
+		stepId: block.stepId || stepId || block.id || blockId,
+		action,
+		label,
+		title: block.title || "",
+		goal: block.goal || "",
+		body: block.body || block.markdown || "",
+		instructions: Array.isArray(block.instructions) ? block.instructions : [],
+		constraints: Array.isArray(block.constraints) ? block.constraints : [],
+		hints: Array.isArray(block.hints) ? block.hints : [],
+		files: Array.isArray(block.files) ? block.files : [],
+		successCriteria: Array.isArray(block.successCriteria) ? block.successCriteria : [],
+		...(selection ? { selection } : {}),
+		...(question ? { question } : {}),
+	};
+}
+
+function renderCommentArea(block) {
 	return `<div class="sm-comment-area">
 		<button class="sm-comment-button" type="button" aria-label="Comment on this section" title="Comment on this section"><img src="/assets/icons/comment.svg" alt="" aria-hidden="true"><span>Comment</span></button>
 		<div class="sm-composer" hidden>
@@ -245,34 +341,67 @@ function renderCommentArea(blockId) {
 			<textarea rows="4" placeholder="Tell me what is unclear, ask for a trace, or request a smaller example…"></textarea>
 			<div class="sm-composer-actions"><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="submit">Send</button></div>
 		</div>
-		<div class="sm-threads">${threadsForBlock(blockId).map(renderThread).join("")}</div>
+		<div class="sm-threads">${threadsForBlock(block).map(renderThread).join("")}</div>
 	</div>`;
+}
+
+function renderExerciseList(className, title, items) {
+	return items.length ? `<div class="${className}"><strong>${title}</strong><ul>${items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("")}</ul></div>` : "";
+}
+
+function renderExerciseStep(block) {
+	const overview = block.body || block.markdown ? `<div class="sm-exercise-overview"><strong>Overview</strong>${renderMarkdown(block.body || block.markdown)}</div>` : "";
+	const goal = block.goal ? `<div class="sm-exercise-goal"><strong>Goal</strong>${renderMarkdown(block.goal)}</div>` : "";
+	const instructions = renderExerciseList("sm-exercise-instructions", "Instructions", block.instructions);
+	const constraints = renderExerciseList("sm-exercise-constraints", "Constraints", block.constraints);
+	const hints = renderExerciseList("sm-exercise-hints", "Hints", block.hints);
+	const criteria = renderExerciseList("sm-exercise-criteria", "Success criteria", block.successCriteria);
+	const files = block.files.length ? `<div class="sm-exercise-files"><strong>Files</strong><ul>${block.files.map((file) => `<li><code>${escapeHtml(file.path)}</code>${file.note ? ` — ${escapeHtml(file.note)}` : ""}</li>`).join("")}</ul></div>` : "";
+	return `<div class="sm-exercise-step-content">
+		${overview}${goal}${instructions}${constraints}${hints}${files}${criteria}
+		<div class="sm-exercise-error" role="alert" hidden></div>
+		<div class="sm-exercise-actions">${block.actions.map((item) => `<button class="${escapeHtml(exerciseActionClass(item.action))}" type="button" data-exercise-action="${escapeHtml(item.action)}" data-action-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</button>`).join("")}</div>
+	</div>`;
+}
+
+function exerciseActionClass(action) {
+	if (action === "struggling") return "action-warning";
+	if (action === "review_attempt") return "action-success";
+	return "";
+}
+
+function setExerciseError(block, message) {
+	const errorElement = block?.querySelector?.(".sm-exercise-error");
+	if (!errorElement) return;
+	errorElement.textContent = message || "";
+	errorElement.hidden = !message;
+	if (message) errorElement.scrollIntoView({ block: "nearest" });
 }
 
 function renderSubBlock(block) {
 	const title = block.title || blockLabel(block.type);
-	const body = block.type === "code" ? renderCodeBlock(block) : renderMarkdown(block.body || block.markdown || "");
+	const body = block.type === "code" ? renderCodeBlock(block) : block.type === "exercise-step" ? renderExerciseStep(block) : renderMarkdown(block.body || block.markdown || "");
 	const source = block.file ? `<span class="sm-source">${escapeHtml(block.file)}${block.startLine ? `:${block.startLine}${block.endLine ? `-${block.endLine}` : ""}` : ""}</span>` : "";
-	return `<section class="sm-subblock sm-subblock-${escapeHtml(block.type || "section")}" id="${escapeHtml(block.id)}" data-block-id="${escapeHtml(block.id)}">
+	return `<section class="sm-subblock sm-subblock-${escapeHtml(block.type || "section")}" id="${escapeHtml(block.id)}" data-block-id="${escapeHtml(block.id)}"${block.type === "exercise-step" ? ` data-step-id="${escapeHtml(block.stepId)}"` : ""}>
 		<div class="sm-subblock-heading"><span>${escapeHtml(blockLabel(block.type))}</span><h3>${escapeHtml(title)}</h3>${source}</div>
 		<div class="sm-block-body">${body}</div>
-		${renderCommentArea(block.id)}
+		${renderCommentArea(block)}
 	</section>`;
 }
 
 function renderSection(section, index) {
 	const block = section.lead;
 	const title = block.title || blockLabel(block.type);
-	const body = block.type === "code" ? renderCodeBlock(block) : renderMarkdown(block.body || block.markdown || "");
+	const body = block.type === "code" ? renderCodeBlock(block) : block.type === "exercise-step" ? renderExerciseStep(block) : renderMarkdown(block.body || block.markdown || "");
 	const source = block.file ? `<span class="sm-source">${escapeHtml(block.file)}${block.startLine ? `:${block.startLine}${block.endLine ? `-${block.endLine}` : ""}` : ""}</span>` : "";
 	return `<article class="sm-section" id="${escapeHtml(section.id)}" data-section-index="${index + 1}">
 		<header class="sm-section-header">
 			<span class="sm-section-number">${index + 1}</span>
 			<div><span class="sm-block-kind">${escapeHtml(blockLabel(block.type))}</span><h2>${escapeHtml(title)}</h2>${source}</div>
 		</header>
-		<section class="sm-section-lead" id="${escapeHtml(block.id)}" data-block-id="${escapeHtml(block.id)}">
+		<section class="sm-section-lead" id="${escapeHtml(block.id)}" data-block-id="${escapeHtml(block.id)}"${block.type === "exercise-step" ? ` data-step-id="${escapeHtml(block.stepId)}"` : ""}>
 			<div class="sm-block-body">${body}</div>
-			${renderCommentArea(block.id)}
+			${renderCommentArea(block)}
 		</section>
 		${section.children.length ? `<div class="sm-section-children">${section.children.map(renderSubBlock).join("")}</div>` : ""}
 	</article>`;
@@ -281,8 +410,8 @@ function renderSection(section, index) {
 function renderOutline(sections) {
 	const main = document.querySelector("#lesson-outline .sm-sidebar-main");
 	if (!main) return;
-	main.innerHTML = `<div class="sm-sidebar-title">Session</div>
-		<div class="sm-session-id">${escapeHtml(bootstrap.sessionId)}</div>
+	main.innerHTML = `<div class="sm-sidebar-title">Lesson</div>
+		<div class="sm-session-title">${escapeHtml(currentLesson?.title || bootstrap.sessionId)}</div>
 		<nav>${sections
 			.map((section, index) => {
 				const lead = section.lead;
@@ -389,6 +518,37 @@ function bindLessonEvents(root) {
 			composer.querySelector("textarea").value = "";
 			delete composer.dataset.selection;
 			clearComposerError(composer);
+		});
+	});
+	root.querySelectorAll("[data-exercise-action]").forEach((button) => {
+		button.addEventListener("click", async () => {
+			const block = button.closest("[data-block-id]");
+			const blockId = block.dataset.blockId;
+			button.disabled = true;
+			button.classList.add("is-loading");
+			try {
+				setExerciseError(block, "");
+				const selection = selectedTextInside(block) || "";
+				const payload = buildExerciseActionPayload({
+					lesson: currentLesson,
+					bootstrap,
+					blockId,
+					stepId: block.dataset.stepId || blockId,
+					action: button.dataset.exerciseAction,
+					label: button.dataset.actionLabel || button.textContent.trim(),
+					selection,
+				});
+				const result = await api("/api/agent-action", { method: "POST", body: JSON.stringify(payload) });
+				currentThreads.push({ threadId: result.threadId, question: { ...payload, question: payload.question || payload.label }, reply: null });
+				renderLesson();
+				startThreadPolling(result.threadId);
+			} catch (error) {
+				console.error(error);
+				setExerciseError(block, getErrorMessage(error));
+			} finally {
+				button.disabled = false;
+				button.classList.remove("is-loading");
+			}
 		});
 	});
 	root.querySelectorAll(".sm-composer [data-action='submit']").forEach((button) => {

@@ -4,18 +4,18 @@
 
 supermentor has three layers that let a coding agent mentor the human learner:
 
-1. **Pedagogical skills** — the portable core. They teach the agent to recognize learning intent, inspect available context, choose a learning mode, and keep code intervention pedagogical.
+1. **Pedagogical skills** — the portable core. They teach the agent to recognize learning intent, inspect available context, choose a learning method, and keep code intervention pedagogical.
 2. **Local learning server** — an optional browser companion that serves an adaptive document and converts browser inline questions into filesystem side-thread events.
 3. **Harness adapters** — optional client-specific bridges. They expose commands, start the local server, or route browser events into a client session where that client supports it.
 
 The default product model is **skill-first, command-optional**. Supermentor should work from natural-language requests in clients that only support skills or chat. Slash commands and the browser companion are convenience surfaces, not the required learning interface.
 
-## Learning mode model
+## Learning method model
 
-Supermentor routes each request from the learner's goal and the context available in the current workspace:
+Supermentor routes each request from the learner's goal, learner calibration, and the context available in the current workspace. It does not select rigid modes from keywords alone. If the first message is ambiguous, the agent asks one calibration question at a time about learner level, learning objective, desired learner effort, and desired agent intervention before producing a plan, lesson, exercise ladder, or browser document.
 
 ```text
-Learning request -> intent -> available context -> learning mode -> active teaching loop
+Learning request -> intent -> learner calibration -> available context -> learning method -> active teaching loop
 ```
 
 Important contexts:
@@ -27,15 +27,18 @@ Important contexts:
 - **Error, log, or failing test** — Supermentor teaches through diagnosis and evidence.
 - **Concept-only question** — Supermentor verifies source-sensitive facts, then teaches with examples and recall prompts.
 
-The initial v1 learning modes are:
+The neutral v1 learning-method palette is:
 
-- guided course;
-- project-based learning;
-- codebase tour;
+- exercises;
+- guided projects;
+- worked examples;
 - code dissection;
-- debugging lesson;
-- practice/drill;
-- recap/consolidation.
+- codebase tours;
+- debugging lessons;
+- drills/predictions;
+- recaps.
+
+Exercise-based learning means the learner writes code in their IDE/current codebase. The agent frames the task, gives constraints, offers hints, reviews attempts, corrects misconceptions, and withholds the full solution unless requested or after a real attempt/blockage.
 
 ## Core data model
 
@@ -98,7 +101,7 @@ The question enters the main agent context through the adapter so it can use the
 
 The server is loopback-only. `SUPERMENTOR_HOST` may be `127.0.0.1` or `::1`; non-loopback values are rejected at startup. This is intentional because the initial HTML page embeds a random per-server token used for browser API calls.
 
-The browser can read session and lesson data and submit inline questions. It cannot overwrite `lesson.json` through HTTP; agents update lessons by writing the session file directly.
+The browser can read session and lesson data and submit inline questions. It cannot overwrite `lesson.json` through HTTP; agents update lessons by writing the session file directly. When agents update a lesson, they should preserve existing inline comments and answers.
 
 Inline question submission waits for a short launcher acknowledgement before telling the browser the question was delivered to the active agent session.
 
@@ -143,8 +146,14 @@ This means Supermentor docs and skills must not require commands such as `/super
 
 ## Browser companion offer
 
-Do not push the browser companion by default. Offer it only when useful and supported by the current client:
+The browser companion is an optional side guide for teaching/learning sessions, not a coding environment, generic design canvas, product-brainstorming surface, or separate learning mode. It can show readable steps, references, success criteria, inline questions/comments, and action callbacks while the learner writes code in their IDE/current codebase. A running session is updated by rewriting `lesson.json`; the server should not be restarted for each exercise.
 
-> Je peux te répondre directement ici. Si tu veux rendre cet apprentissage plus interactif, je peux ouvrir un espace où tu pourras commenter les sections ou les lignes de code qui coincent, et je répondrai directement sous ces passages.
+Do not push the browser companion by default. For longer exercise paths, ask whether the learner wants chat/terminal or the browser side guide. Offer it only when useful and supported by the current client:
+
+> Je peux te répondre directement ici. Pour un parcours plus long, on peut rester dans le chat/terminal, ou ouvrir un guide latéral dans le navigateur avec les étapes, critères de réussite et commentaires si ce client le permet. Tu écris toujours le code dans ton IDE ou ton codebase.
 
 If the learner declines, continue in chat without repeated offers.
+
+## Exercise document defaults
+
+Exercise JSON should stay minimal. Supermentor infers default English action labels such as "I'm struggling" and "Review my attempt". Lesson authors should describe the task, constraints, references, hints, and success criteria rather than hardcoding UI labels or localized placeholders. Reviewing an attempt is the completion checkpoint for a step. Initial exercise documents must not include full expected programs or complete solution blocks; code blocks in an exercise guide should be skeletons, partial snippets, API references, or post-attempt corrections.

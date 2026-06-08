@@ -55,7 +55,7 @@ async function readJsonResponse(response) {
 	return { status: response.status, body: await response.json() };
 }
 
-function waitForInlineEvent(child) {
+function waitForServerEvent(child, eventType) {
 	return new Promise((resolve, reject) => {
 		let buffer = "";
 		const onData = (chunk) => {
@@ -64,7 +64,7 @@ function waitForInlineEvent(child) {
 			buffer = lines.pop() || "";
 			for (const line of lines) {
 				const event = parseServerEventLine(line.trim());
-				if (event?.type === "inline-question") {
+				if (event?.type === eventType) {
 					child.stdout.off("data", onData);
 					resolve(event);
 					return;
@@ -74,9 +74,13 @@ function waitForInlineEvent(child) {
 		child.stdout.on("data", onData);
 		setTimeout(() => {
 			child.stdout.off("data", onData);
-			reject(new Error("inline event timeout"));
+			reject(new Error(`${eventType} event timeout`));
 		}, 1000).unref();
 	});
+}
+
+function waitForInlineEvent(child) {
+	return waitForServerEvent(child, "inline-question");
 }
 
 test("cache root follows platform cache conventions", () => {
@@ -165,7 +169,7 @@ test("inline question prompt points the agent at question and reply files", () =
 	assert.match(prompt, /Supermentor inline question/);
 	assert.match(prompt, /Read question JSON: \/tmp\/q\.json/);
 	assert.match(prompt, /Write reply JSON: \/tmp\/r\.json/);
-	assert.match(prompt, /Réponse envoyée au commentaire thr_1/);
+	assert.match(prompt, /Reply sent to comment thr_1/);
 });
 
 test("server rejects non-loopback hosts", async () => {
@@ -219,6 +223,30 @@ test("server requires an inline question", async () => {
 		}));
 		assert.equal(result.status, 400);
 		assert.equal(result.body.error, "question is required");
+	} finally {
+		await server.close();
+	}
+});
+
+test("server rejects missing and unsupported exercise actions", async () => {
+	const server = await startTestServer();
+	try {
+		const headers = { "x-supermentor-token": server.started.token, "content-type": "application/json" };
+		const missing = await readJsonResponse(await fetch(`${server.started.url}api/agent-action`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ blockId: "step-1" }),
+		}));
+		assert.equal(missing.status, 400);
+		assert.equal(missing.body.error, "action is required");
+
+		const unsupported = await readJsonResponse(await fetch(`${server.started.url}api/agent-action`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ blockId: "step-1", action: "step_complete" }),
+		}));
+		assert.equal(unsupported.status, 400);
+		assert.equal(unsupported.body.error, "unsupported action");
 	} finally {
 		await server.close();
 	}
