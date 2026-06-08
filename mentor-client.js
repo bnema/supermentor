@@ -131,6 +131,10 @@ function normalizeExerciseFiles(value) {
 
 export function normalizeExerciseStep(block = {}, index = 0) {
 	const id = block.id || block.stepId || slug(block.title || block.goal || `exercise-step-${index + 1}`, `exercise-step-${index + 1}`);
+	return normalizeExerciseStepWithId(block, id);
+}
+
+function normalizeExerciseStepWithId(block = {}, id) {
 	return {
 		...block,
 		type: "exercise-step",
@@ -155,8 +159,31 @@ function isExerciseLikeBlock(block) {
 	return Boolean(block.goal || block.instructions || block.successCriteria || block.success_criteria || block.criteria || block.files || block.actions);
 }
 
+function uniqueBlockId(rawId, seenIds, fallback) {
+	const base = slug(rawId || fallback, fallback);
+	let candidate = base;
+	let suffix = 1;
+	while (seenIds.has(candidate)) candidate = `${base}-${suffix++}`;
+	seenIds.add(candidate);
+	return candidate;
+}
+
 export function normalizeLessonBlocks(blocks = []) {
-	return blocks.map((block, index) => isExerciseLikeBlock(block) ? normalizeExerciseStep(block, index) : { ...block, id: block.id || `block-${index + 1}` });
+	const seenIds = new Set();
+	return blocks.map((block, index) => {
+		const fallback = `block-${index + 1}`;
+		if (isExerciseLikeBlock(block)) {
+			const originalId = block.id || block.stepId || block.title || block.goal;
+			const id = uniqueBlockId(originalId, seenIds, `exercise-step-${index + 1}`);
+			return normalizeExerciseStepWithId(block, id);
+		}
+		if (block && typeof block === "object") {
+			const id = uniqueBlockId(block.id, seenIds, fallback);
+			return { ...block, id };
+		}
+		const id = uniqueBlockId(fallback, seenIds, fallback);
+		return { id, type: "note", body: String(block ?? "") };
+	});
 }
 
 async function api(path, options = {}) {
@@ -332,8 +359,23 @@ function renderExerciseStep(block) {
 	const files = block.files.length ? `<div class="sm-exercise-files"><strong>Files</strong><ul>${block.files.map((file) => `<li><code>${escapeHtml(file.path)}</code>${file.note ? ` — ${escapeHtml(file.note)}` : ""}</li>`).join("")}</ul></div>` : "";
 	return `<div class="sm-exercise-step-content">
 		${overview}${goal}${instructions}${constraints}${hints}${files}${criteria}
-		<div class="sm-exercise-actions">${block.actions.map((item) => `<button type="button" data-exercise-action="${escapeHtml(item.action)}" data-action-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</button>`).join("")}</div>
+		<div class="sm-exercise-error" role="alert" hidden></div>
+		<div class="sm-exercise-actions">${block.actions.map((item) => `<button class="${escapeHtml(exerciseActionClass(item.action))}" type="button" data-exercise-action="${escapeHtml(item.action)}" data-action-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</button>`).join("")}</div>
 	</div>`;
+}
+
+function exerciseActionClass(action) {
+	if (action === "struggling") return "action-warning";
+	if (action === "review_attempt") return "action-success";
+	return "";
+}
+
+function setExerciseError(block, message) {
+	const errorElement = block?.querySelector?.(".sm-exercise-error");
+	if (!errorElement) return;
+	errorElement.textContent = message || "";
+	errorElement.hidden = !message;
+	if (message) errorElement.scrollIntoView({ block: "nearest" });
 }
 
 function renderSubBlock(block) {
@@ -483,7 +525,9 @@ function bindLessonEvents(root) {
 			const block = button.closest("[data-block-id]");
 			const blockId = block.dataset.blockId;
 			button.disabled = true;
+			button.classList.add("is-loading");
 			try {
+				setExerciseError(block, "");
 				const selection = selectedTextInside(block) || "";
 				const payload = buildExerciseActionPayload({
 					lesson: currentLesson,
@@ -500,8 +544,10 @@ function bindLessonEvents(root) {
 				startThreadPolling(result.threadId);
 			} catch (error) {
 				console.error(error);
+				setExerciseError(block, getErrorMessage(error));
 			} finally {
 				button.disabled = false;
+				button.classList.remove("is-loading");
 			}
 		});
 	});

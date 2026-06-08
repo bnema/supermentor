@@ -15,8 +15,8 @@ export function actionLabel(action) {
 
 export function normalizeStringList(value) {
 	if (!Array.isArray(value)) {
-		const item = String(value || "").trim();
+		const item = String(value == null ? "" : value).trim();
 		return item ? [item] : [];
 	}
-	return value.map((item) => String(item || "").trim()).filter(Boolean);
+	return value.map((item) => String(item == null ? "" : item).trim()).filter(Boolean);
 }

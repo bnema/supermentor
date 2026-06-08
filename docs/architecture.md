@@ -4,7 +4,7 @@
 
 supermentor has three layers that let a coding agent mentor the human learner:
 
-1. **Pedagogical skills** — the portable core. They teach the agent to recognize learning intent, inspect available context, choose a learning mode, and keep code intervention pedagogical.
+1. **Pedagogical skills** — the portable core. They teach the agent to recognize learning intent, inspect available context, choose a learning method, and keep code intervention pedagogical.
 2. **Local learning server** — an optional browser companion that serves an adaptive document and converts browser inline questions into filesystem side-thread events.
 3. **Harness adapters** — optional client-specific bridges. They expose commands, start the local server, or route browser events into a client session where that client supports it.
 

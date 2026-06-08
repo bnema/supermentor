@@ -47,18 +47,16 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 
 		try {
 			const prompt = event.type === "agent-action" ? formatAgentActionPrompt(event.payload) : formatInlineQuestionPrompt(event.payload);
-			const delivery = Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" }));
+			await pi.sendUserMessage(prompt, { deliverAs: "followUp" });
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
 					ok: true,
 					message: `${event.type === "agent-action" ? "Agent action" : "Inline question"} queued in pi session`,
 				});
 			}
-			delivery.catch((error) => {
-				const message = error instanceof Error ? error.message : `Failed to deliver ${event.type}`;
-				pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor ${event.type} delivery failed: ${message}` });
-			});
 		} catch (error) {
+			const message = error instanceof Error ? error.message : `Failed to deliver ${event.type}`;
+			pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor ${event.type} delivery failed: ${message}` });
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
 					ok: false,

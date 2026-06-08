@@ -102,7 +102,7 @@ Inline browser questions are side-thread turns. Use the main conversation contex
 When you receive a Supermentor inline question prompt:
 
 1. Read the referenced `question.json`.
-2. Write `reply.json`:
+1. Write `reply.json`:
 
 ```json
 {
@@ -116,7 +116,7 @@ When you receive a Supermentor inline question prompt:
 }
 ```
 
-3. Keep the main chat compact: `Reply sent to comment thr_...`
+1. Keep the main chat compact: `Reply sent to comment thr_...`
 
 ## Publishing a browser lesson
 

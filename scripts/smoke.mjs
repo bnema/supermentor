@@ -59,6 +59,7 @@ async function runSmoke(started) {
 	}).then((response) => response.json());
 	if (session.lesson.title !== "Smoke lesson") throw new Error("lesson title mismatch");
 
+	const inlineEventPromise = waitForInlineQuestion();
 	const submit = fetch(`${started.url}api/inline-question`, {
 		method: "POST",
 		headers: {
@@ -68,7 +69,7 @@ async function runSmoke(started) {
 		body: JSON.stringify({ blockId: "welcome", question: "Pourquoi ?", selection: "texte" }),
 	});
 
-	const inlineEvent = await waitForInlineQuestion();
+	const inlineEvent = await inlineEventPromise;
 	child.stdin.write(`${JSON.stringify({ type: "supermentor-ack", requestId: inlineEvent.requestId, ok: true, message: "delivered" })}\n`);
 	const submitted = await submit.then((response) => response.json());
 	if (!submitted.delivered) throw new Error("inline question was not acknowledged");
@@ -83,6 +84,7 @@ async function runSmoke(started) {
 	}).then((response) => response.json());
 	if (thread.reply.markdown !== "Reply.") throw new Error("reply was not returned");
 
+	const actionEventPromise = waitForEvent("agent-action");
 	const actionSubmit = fetch(`${started.url}api/agent-action`, {
 		method: "POST",
 		headers: {
@@ -91,7 +93,7 @@ async function runSmoke(started) {
 		},
 		body: JSON.stringify({ lessonId: "smoke", blockId: "welcome", stepId: "step-1", action: "struggling", label: "I'm struggling", files: ["server.cjs"], successCriteria: "Understand the smoke path." }),
 	});
-	const actionEvent = await waitForEvent("agent-action");
+	const actionEvent = await actionEventPromise;
 	child.stdin.write(`${JSON.stringify({ type: "supermentor-ack", requestId: actionEvent.requestId, ok: true, message: "delivered" })}\n`);
 	const actionSubmitted = await actionSubmit.then((response) => response.json());
 	if (!actionSubmitted.delivered) throw new Error("agent action was not acknowledged");

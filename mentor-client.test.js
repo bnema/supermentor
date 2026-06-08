@@ -51,6 +51,19 @@ test("exercise steps infer stable ids and default English actions", () => {
 	]);
 });
 
+test("lesson block normalization deduplicates ids and tolerates malformed blocks", () => {
+	const sections = buildSections([
+		{ id: "repeat", type: "concept", title: "First" },
+		{ id: "repeat", type: "concept", title: "Second" },
+		null,
+		"loose note",
+	]);
+
+	assert.deepEqual(sections.map((section) => section.lead.id), ["repeat", "repeat-1", "block-3", "block-4"]);
+	assert.equal(sections[2].lead.type, "note");
+	assert.equal(sections[3].lead.body, "loose note");
+});
+
 test("exercise blocks with exercise metadata infer default actions as top-level steps", () => {
 	const sections = buildSections([
 		{ id: "intro", type: "concept", title: "Intro" },

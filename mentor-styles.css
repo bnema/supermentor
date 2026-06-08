@@ -392,8 +392,17 @@ main {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.sm-exercise-actions button:first-child { border-color: var(--warning); }
-.sm-exercise-actions button:last-child { border-color: var(--success); }
+.sm-exercise-actions button.action-warning { border-color: var(--warning); }
+.sm-exercise-actions button.action-success { border-color: var(--success); }
+.sm-exercise-actions button.is-loading { opacity: 0.7; }
+.sm-exercise-error {
+  max-width: 72ch;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--error);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
 .sm-block-body code:not(.hljs) {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-soft);
