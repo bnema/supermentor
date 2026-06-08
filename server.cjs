@@ -76,14 +76,14 @@ function defaultLesson() {
 		sessionId,
 		title: process.env.SUPERMENTOR_TITLE || "Supermentor",
 		intro:
-			"Ton espace d’apprentissage interactif est prêt. Demande à l’agent de publier une leçon, un walkthrough de code, un exercice ou un parcours guidé ici.",
+			"Your interactive learning space is ready. Ask the agent to publish a lesson, code walkthrough, exercise guide, or guided learning path here.",
 		blocks: [
 			{
 				id: "welcome",
 				type: "concept",
-				title: "Comment utiliser cet espace",
+				title: "How to use this space",
 				body:
-					"Tu peux commenter une section ou une sélection précise. La question repartira vers l’agent avec le contexte général, mais la réponse sera rendue ici sous le passage concerné.",
+					"You can comment on a section or a specific selection. The question is sent back to the agent with the session context, and the answer appears here under the relevant passage.",
 			},
 		],
 	};
@@ -200,39 +200,96 @@ function listThreads() {
 }
 
 function createInlineQuestion(payload) {
-	const threadId = slug(payload.threadId) || `thr_${crypto.randomBytes(6).toString("hex")}`;
+	const questionText = String(payload.question || "").trim();
+	if (!questionText) {
+		const error = new Error("question is required");
+		error.statusCode = 400;
+		throw error;
+	}
+	return createAgentThread(payload, {
+		eventType: "inline-question-created",
+		questionType: "inline_question",
+		threadIdPrefix: "thr",
+		extraQuestion: {
+			anchor: payload.anchor || null,
+			selection: String(payload.selection || "").slice(0, 12000),
+			question: questionText,
+		},
+	});
+}
+
+async function createAgentAction(payload) {
+	const { EXERCISE_ACTION_IDS, actionLabel, normalizeStringList } = await import("./exercise-contract.js");
+	const action = slug(payload.action);
+	if (!action) {
+		const error = new Error("action is required");
+		error.statusCode = 400;
+		throw error;
+	}
+	if (!EXERCISE_ACTION_IDS.has(action)) {
+		const error = new Error("unsupported action");
+		error.statusCode = 400;
+		throw error;
+	}
+	const files = Array.isArray(payload.files) ? payload.files.map(normalizeFileReference).filter(Boolean).slice(0, 30) : [];
+	return createAgentThread(payload, {
+		eventType: "agent-action-created",
+		questionType: "agent_action",
+		threadIdPrefix: "act",
+		extraQuestion: {
+			action,
+			label: actionLabel(action),
+			stepId: payload.stepId || null,
+			title: String(payload.title || "").slice(0, 500),
+			goal: String(payload.goal || "").slice(0, 2000),
+			body: String(payload.body || "").slice(0, 6000),
+			instructions: normalizeStringList(payload.instructions).slice(0, 30),
+			constraints: normalizeStringList(payload.constraints).slice(0, 30),
+			hints: normalizeStringList(payload.hints).slice(0, 30),
+			files,
+			successCriteria: normalizeStringList(payload.successCriteria).slice(0, 30),
+			selection: String(payload.selection || "").slice(0, 12000),
+			question: String(payload.question || "").trim(),
+		},
+	});
+}
+
+function createAgentThread(payload, options) {
+	const threadId = slug(payload.threadId) || `${options.threadIdPrefix}_${crypto.randomBytes(6).toString("hex")}`;
 	const requestId = `req_${crypto.randomBytes(6).toString("hex")}`;
 	const threadDir = path.join(threadsDir, threadId);
 	const questionPath = path.join(threadDir, "question.json");
 	const replyPath = path.join(threadDir, "reply.json");
 	const question = {
-		type: "inline_question",
+		type: options.questionType,
 		requestId,
 		threadId,
 		sessionId,
 		lessonId: payload.lessonId || null,
 		blockId: payload.blockId || payload.anchor?.blockId || null,
-		anchor: payload.anchor || null,
-		selection: String(payload.selection || "").slice(0, 12000),
-		question: String(payload.question || "").trim(),
 		createdAt: new Date().toISOString(),
 		paths: { questionPath, replyPath },
+		...options.extraQuestion,
 	};
-	if (!question.question) {
-		const error = new Error("question is required");
-		error.statusCode = 400;
-		throw error;
-	}
 	writeJson(questionPath, question);
-	appendEvent({ type: "inline-question-created", requestId, threadId, blockId: question.blockId });
+	appendEvent({ type: options.eventType, requestId, threadId, blockId: question.blockId, action: question.action || null });
 	return { requestId, threadId, threadDir, question, questionPath, replyPath };
+}
+
+function normalizeFileReference(file) {
+	if (typeof file === "string") return file.trim();
+	if (file && typeof file === "object") {
+		const value = file.path || file.file || file.name;
+		if (typeof value === "string") return value.trim();
+	}
+	return "";
 }
 
 function removeThread(created, reason) {
 	try {
 		fs.rmSync(created.threadDir, { recursive: true, force: true });
 	} catch {}
-	appendEvent({ type: "inline-question-removed", requestId: created.requestId, threadId: created.threadId, reason });
+	appendEvent({ type: "thread-removed", requestId: created.requestId, threadId: created.threadId, reason, questionType: created.question?.type || null });
 }
 
 function registerAck(requestId) {
@@ -252,6 +309,47 @@ function settleAck(event) {
 	clearTimeout(pending.timeout);
 	pending.resolve(event);
 	return true;
+}
+
+async function deliverAgentEvent(res, created, eventType, description) {
+	const ackPromise = registerAck(created.requestId);
+	const event = {
+		type: eventType,
+		requestId: created.requestId,
+		payload: {
+			...created.question,
+			instruction: `Read ${created.questionPath}. Write the answer JSON to ${created.replyPath}. Keep the main chat compact after writing the file.`,
+		},
+	};
+	try {
+		process.stdout.write(`${JSON.stringify(event)}\n`);
+	} catch (error) {
+		removeThread(created, "stdout write failed");
+		sendJson(res, 500, { ok: false, error: error instanceof Error ? error.message : `${description} delivery failed`, requestId: created.requestId });
+		return;
+	}
+
+	let ack;
+	try {
+		ack = await ackPromise;
+	} catch (error) {
+		removeThread(created, "ack timeout");
+		sendJson(res, 504, {
+			ok: false,
+			error: error instanceof Error ? error.message : `${description} delivery timed out`,
+			requestId: created.requestId,
+			threadId: created.threadId,
+		});
+		return;
+	}
+
+	if (!ack.ok) {
+		removeThread(created, "ack failed");
+		sendJson(res, 502, { ok: false, error: ack.error || `${description} delivery failed`, requestId: created.requestId, threadId: created.threadId });
+		return;
+	}
+
+	sendJson(res, 202, { ok: true, delivered: true, message: ack.message, requestId: created.requestId, threadId: created.threadId, replyPath: created.replyPath });
 }
 
 function closeServer(reason = "shutdown") {
@@ -274,46 +372,13 @@ async function handleApi(req, res, url) {
 		return;
 	}
 	if (req.method === "POST" && url.pathname === "/api/inline-question") {
-		const payload = await readJsonBody(req);
-		const created = createInlineQuestion(payload);
-		const ackPromise = registerAck(created.requestId);
-		const event = {
-			type: "inline-question",
-			requestId: created.requestId,
-			payload: {
-				...created.question,
-				instruction: `Read ${created.questionPath}. Write the answer JSON to ${created.replyPath}. Keep the main chat compact after writing the file.`,
-			},
-		};
-		try {
-			process.stdout.write(`${JSON.stringify(event)}\n`);
-		} catch (error) {
-			removeThread(created, "stdout write failed");
-			sendJson(res, 500, { ok: false, error: error instanceof Error ? error.message : "inline question delivery failed", requestId: created.requestId });
-			return;
-		}
-
-		let ack;
-		try {
-			ack = await ackPromise;
-		} catch (error) {
-			removeThread(created, "ack timeout");
-			sendJson(res, 504, {
-				ok: false,
-				error: error instanceof Error ? error.message : "inline question delivery timed out",
-				requestId: created.requestId,
-				threadId: created.threadId,
-			});
-			return;
-		}
-
-		if (!ack.ok) {
-			removeThread(created, "ack failed");
-			sendJson(res, 502, { ok: false, error: ack.error || "inline question delivery failed", requestId: created.requestId, threadId: created.threadId });
-			return;
-		}
-
-		sendJson(res, 202, { ok: true, delivered: true, message: ack.message, requestId: created.requestId, threadId: created.threadId, replyPath: created.replyPath });
+		const created = createInlineQuestion(await readJsonBody(req));
+		await deliverAgentEvent(res, created, "inline-question", "inline question");
+		return;
+	}
+	if (req.method === "POST" && url.pathname === "/api/agent-action") {
+		const created = await createAgentAction(await readJsonBody(req));
+		await deliverAgentEvent(res, created, "agent-action", "agent action");
 		return;
 	}
 	const threadMatch = url.pathname.match(/^\/api\/threads\/([^/]+)$/);
@@ -350,6 +415,7 @@ async function handleRequestAsync(req, res, url) {
 	}
 	const staticFiles = new Map([
 		["/mentor-client.js", ["application/javascript; charset=utf-8", "mentor-client.js"]],
+		["/exercise-contract.js", ["application/javascript; charset=utf-8", "exercise-contract.js"]],
 		["/mentor-styles.css", ["text/css; charset=utf-8", "mentor-styles.css"]],
 		["/mentor-theme.js", ["application/javascript; charset=utf-8", "mentor-theme.js"]],
 		["/assets/highlight.min.js", ["application/javascript; charset=utf-8", path.join("assets", "highlight.min.js")]],

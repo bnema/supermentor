@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { parseServerEventLine } from "../client-shared.js";
 import type { SupermentorStartedEvent } from "../client-shared.js";
-import { formatInlineQuestionPrompt } from "../mentor-prompt.js";
+import { formatAgentActionPrompt, formatInlineQuestionPrompt } from "../mentor-prompt.js";
 import {
 	buildPiSupermentorUrl,
 	spawnPiSupermentorServer,
@@ -15,19 +15,16 @@ type Started = SupermentorStartedEvent;
 
 const MAX_STDOUT_BUFFER_BYTES = 64 * 1024;
 
-type InlineQuestionEvent = {
-	type: "inline-question";
+type AgentEvent = {
+	type: "inline-question" | "agent-action";
 	requestId: string;
 	payload: unknown;
 };
 
-function isInlineQuestionEvent(event: unknown): event is InlineQuestionEvent {
-	return (
-		typeof event === "object" &&
-		event !== null &&
-		(event as { type?: unknown }).type === "inline-question" &&
-		typeof (event as { requestId?: unknown }).requestId === "string"
-	);
+function isAgentEvent(event: unknown): event is AgentEvent {
+	if (typeof event !== "object" || event === null) return false;
+	const type = (event as { type?: unknown }).type;
+	return (type === "inline-question" || type === "agent-action") && typeof (event as { requestId?: unknown }).requestId === "string";
 }
 
 export default function supermentorExtension(pi: ExtensionAPI) {
@@ -46,26 +43,26 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 
 	async function handleStdoutLine(line: string) {
 		const event = parseServerEventLine(line);
-		if (!isInlineQuestionEvent(event)) return;
+		if (!isAgentEvent(event)) return;
 
-		const prompt = formatInlineQuestionPrompt(event.payload);
 		try {
+			const prompt = event.type === "agent-action" ? formatAgentActionPrompt(event.payload) : formatInlineQuestionPrompt(event.payload);
 			const delivery = Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" }));
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
 					ok: true,
-					message: "Inline question queued in pi session",
+					message: `${event.type === "agent-action" ? "Agent action" : "Inline question"} queued in pi session`,
 				});
 			}
 			delivery.catch((error) => {
-				const message = error instanceof Error ? error.message : "Failed to deliver inline question";
-				pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor inline delivery failed: ${message}` });
+				const message = error instanceof Error ? error.message : `Failed to deliver ${event.type}`;
+				pi.sendMessage({ customType: "supermentor-error", display: true, content: `supermentor ${event.type} delivery failed: ${message}` });
 			});
 		} catch (error) {
 			if (child) {
 				writePiSupermentorAck(child, event.requestId, {
 					ok: false,
-					error: error instanceof Error ? error.message : "Failed to deliver inline question",
+					error: error instanceof Error ? error.message : `Failed to deliver ${event.type}`,
 				});
 			}
 		}
@@ -126,7 +123,7 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 				`supermentor browser companion started: ${url}`,
 				`Session directory: ${started.sessionDir}`,
 				`To publish or update the lesson, write a learning-document JSON to: ${started.sessionDir}/lesson.json`,
-				"Inline questions from the browser will arrive as side-thread prompts. Answer them by writing the requested reply.json file.",
+				"Inline questions and exercise actions from the browser will arrive as side-thread prompts. Answer them by writing the requested reply.json file.",
 			].join("\n"),
 			details: { ...started, url, title },
 		});

@@ -1,24 +1,22 @@
 # supermentor
 
-supermentor helps coding agents teach humans code, concepts, projects, and existing codebases. It combines portable teaching skills with an optional local browser companion for longer lessons, code walkthroughs, exercises, and inline questions.
+supermentor is a local teaching toolkit for coding agents. It provides portable teaching skills, client install helpers, and an optional Pi browser companion for longer lessons, code walkthroughs, exercises, and inline questions.
 
-Supermentor is designed to help learners build durable mental models through paced explanations, step-by-step code walkthroughs, small predictions, traces, exercises, and guided practice.
-
-Supermentor is **skill-first and command-optional**. The portable workflow is natural-language mentoring through installed skills. Slash commands and the browser companion are available only in clients with matching integration support.
+The primary interface is skill-based mentoring in the agent chat. Slash commands and browser support are available only when the client integration provides them.
 
 ## What it includes
 
-- **Teaching skills** that tell the agent when to explain, trace, dissect code, map a codebase, run a lab, teach through a guided project, or scaffold setup.
-- **Local install helpers** for Pi, OpenCode, Claude Code, and Codex.
-- **Optional Pi browser companion** with the agent-callable `supermentor_start` tool and `/supermentor-start`, `/supermentor-status`, `/supermentor-stop` commands.
-- **A local HTTP server and file protocol** for browser lessons and inline comments.
-- **Reusable adapter helpers** for future harness bridges.
+- Teaching skills for guided learning, code dissection, codebase tours, and setup support.
+- Local install helpers for Pi, OpenCode, Claude Code, and Codex.
+- A Pi extension with `supermentor_start` plus `/supermentor-start`, `/supermentor-status`, and `/supermentor-stop`.
+- A local HTTP server and file-based protocol for browser lessons and inline comments.
+- Adapter helpers for harness integrations.
 
-Browser side-thread support requires a tested harness bridge. Today, that means Pi. Other clients can use the Supermentor skills locally, but their browser companion bridges are not documented as supported yet.
+Browser side-thread support requires a tested harness bridge. Pi supports the browser companion today. OpenCode, Claude Code, and Codex can use the local skills, but their browser companion bridges are not supported yet.
 
 ## Local installation
 
-Install Supermentor separately for each agent client. The local flow is always the same:
+Install Supermentor separately for each agent client:
 
 ```bash
 git clone https://github.com/bnema/supermentor ~/.local/share/supermentor
@@ -26,7 +24,7 @@ cd ~/.local/share/supermentor
 node scripts/install-local.mjs pi
 ```
 
-Supported clients:
+Supported install targets:
 
 ```bash
 node scripts/install-local.mjs pi
@@ -35,7 +33,7 @@ node scripts/install-local.mjs claude
 node scripts/install-local.mjs codex
 ```
 
-Use your development checkout instead of `~/.local/share/supermentor` if you are working on Supermentor itself. Use `--copy` if symlinks are inconvenient:
+Use your development checkout instead of `~/.local/share/supermentor` when working on Supermentor itself. Use `--copy` if symlinks are inconvenient:
 
 ```bash
 node scripts/install-local.mjs codex --copy
@@ -50,50 +48,52 @@ node scripts/install-local.mjs codex --copy
 | Claude Code | Skills-directory plugin | Not supported yet | [`install/claude-code.md`](install/claude-code.md) |
 | Codex | Local skills | Not supported yet | [`install/codex.md`](install/codex.md) |
 
-## Learning modes
+## Learning methods
 
-Supermentor adapts the lesson to the learner's goal and the context available in the current workspace.
+Supermentor adapts lessons to the learner's goal, current level, workspace context, and preferred amount of agent help. When the request needs clarification, the agent asks focused calibration questions before planning the lesson.
 
-| Context | Supermentor behavior |
+| Context | Typical use |
 | --- | --- |
-| Blank repo or scratch folder | Creates a guided course, tiny lab, or project slice. |
-| Project idea | Teaches through a small build while keeping the learner in control of implementation choices. |
-| Existing or public codebase | Maps the repo, chooses a reading path, and dissects one flow. |
-| Selected code or named file | Explains purpose, chunks behavior, traces examples, and offers micro-exercises. |
-| Error, log, or failing test | Teaches through diagnosis and evidence. |
-| Concept-only question | Verifies source-sensitive details, then teaches with examples and recall prompts. |
+| Blank repo or scratch folder | Guided course, tiny lab, or project slice. |
+| Project idea | Small build with learner-owned implementation choices. |
+| Existing or public codebase | Repository map, reading path, and focused flow dissection. |
+| Selected code or named file | Purpose, behavior chunks, example traces, and micro-exercises. |
+| Error, log, or failing test | Diagnosis lesson based on evidence. |
+| Concept-only question | Explanation with examples, checks for understanding, and recall prompts. |
 
-The reusable teaching loop is:
+Methods include exercises, guided projects, worked examples, code dissection, codebase tours, debugging lessons, drills, predictions, and recaps.
+
+A common teaching loop is:
 
 ```text
 Orient -> predict -> explain -> modify or trace -> practice -> recap
 ```
 
-These modes cover both learning from a new workspace and learning from an existing repository.
+For exercise-based learning, the learner writes code in their IDE or current codebase. The agent frames the task, gives constraints and success criteria, offers hints, reviews attempts, and corrects misconceptions. Full solutions are reserved for explicit requests or real blockage after an attempt.
 
 ## Pedagogical basis
 
-Supermentor's methodology uses evidence-backed learning techniques:
+Supermentor uses common evidence-backed teaching techniques:
 
-- **Retrieval practice** — ask the learner to recall, predict, or explain before showing the answer.
-- **Spaced practice** — note concepts worth revisiting across a longer session or later recap.
-- **Interleaving** — vary related problem types once the first pattern is stable.
-- **Worked examples and fading** — complete example, then partial example, then learner attempt.
-- **Example-based code reading** — use traces, tests, fixtures, and small changes to connect code to behavior.
-- **Metacognition** — prompt the learner to notice why an answer felt plausible instead of asking only whether they understood.
+- **Retrieval practice:** ask the learner to recall, predict, or explain before showing the answer.
+- **Spaced practice:** mark concepts worth revisiting later.
+- **Interleaving:** vary related problem types after the first pattern is stable.
+- **Worked examples and fading:** move from complete examples to partial examples to learner attempts.
+- **Example-based code reading:** use traces, tests, fixtures, and small changes to connect code to behavior.
+- **Metacognition:** ask the learner to notice why an answer felt plausible.
 
-Useful references:
+References:
 
-- [Dunlosky et al., “Improving Students' Learning With Effective Learning Techniques”](https://journals.sagepub.com/doi/abs/10.1177/1529100612453266) — retrieval practice and spaced practice are among the strongest general study techniques.
-- [Brown, Roediger, and McDaniel, *Make It Stick*](https://www.hup.harvard.edu/books/9780674729018) — practical synthesis of retrieval, spacing, interleaving, and desirable difficulty.
-- [Ambrose et al., *How Learning Works*](https://firstliteracy.org/wp-content/uploads/2015/07/How-Learning-Works.pdf) — research-based teaching principles around prior knowledge, practice, feedback, and self-directed learning.
-- [Raspberry Pi Foundation, “Teaching programming in schools: A review of approaches and strategies”](https://www.raspberrypi.org/app/uploads/2021/11/Teaching-programming-in-schools-pedagogy-review-Raspberry-Pi-Foundation.pdf) — programming-specific strategies such as worked examples, tracing, PRIMM, debugging tasks, Parsons problems, pair programming, and peer instruction.
-- [ITiCSE working group review: “Introductory Programming: A Systematic Literature Review”](https://repository.falmouth.ac.uk/3051/1/ITiCSE_2018__WG3.pdf) — overview of introductory programming education research.
-- [“Parsons Problems and Beyond: Systematic Literature Review and Empirical Study Designs”](https://aaltodoc.aalto.fi/items/a77c8afa-0f57-4ef6-85d2-4f982776677c) — evidence base for code-ordering and structured programming exercises.
+- [Dunlosky et al., "Improving Students' Learning With Effective Learning Techniques"](https://journals.sagepub.com/doi/abs/10.1177/1529100612453266)
+- [Brown, Roediger, and McDaniel, *Make It Stick*](https://www.hup.harvard.edu/books/9780674729018)
+- [Ambrose et al., *How Learning Works*](https://firstliteracy.org/wp-content/uploads/2015/07/How-Learning-Works.pdf)
+- [Raspberry Pi Foundation, "Teaching programming in schools: A review of approaches and strategies"](https://www.raspberrypi.org/app/uploads/2021/11/Teaching-programming-in-schools-pedagogy-review-Raspberry-Pi-Foundation.pdf)
+- [ITiCSE working group review, "Introductory Programming: A Systematic Literature Review"](https://repository.falmouth.ac.uk/3051/1/ITiCSE_2018__WG3.pdf)
+- ["Parsons Problems and Beyond: Systematic Literature Review and Empirical Study Designs"](https://aaltodoc.aalto.fi/items/a77c8afa-0f57-4ef6-85d2-4f982776677c)
 
-### Pi browser companion
+## Pi browser companion
 
-After installing in Pi, the agent can start the integrated browser companion with the `supermentor_start` tool when a lesson would be easier to follow in the browser. You can also start it manually in a new Pi session:
+After installing in Pi, the agent can start the browser companion with `supermentor_start` when a lesson would benefit from a side guide. You can also start it manually in a Pi session:
 
 ```text
 /supermentor-start Learning session
@@ -101,7 +101,9 @@ After installing in Pi, the agent can start the integrated browser companion wit
 /supermentor-stop
 ```
 
-Use the browser companion for long walkthroughs, code anchors, or inline comments. In Pi, prefer the integrated tool or command over launching `server.cjs` manually; manual server startup displays lessons but cannot route inline browser questions back into the active agent session. For short explanations, or in clients without a tested browser bridge, stay in chat.
+Use the browser companion for long walkthroughs, code anchors, inline comments, and longer exercise paths. It displays learning material and side-thread questions; it is not a coding environment. Learners still write code in their IDE or current codebase. A running browser session is updated by rewriting `lesson.json`; it does not need to be restarted for each exercise.
+
+For short explanations, or in clients without a supported browser bridge, use chat. In Pi, prefer the integrated tool or command over launching `server.cjs` manually. Manual server startup displays lessons but cannot route inline browser questions back into the active agent session.
 
 ## Session storage
 
@@ -122,19 +124,21 @@ session.json          # manifest: id, cwd, title
 server.json           # current server URL/token when running
 lesson.json           # adaptive learning document
 threads/<threadId>/
-  question.json       # browser question written by the server
+  question.json       # browser question/action written by the server
   reply.json          # agent answer written by the coding agent
 events.jsonl          # append-only operational events
 ```
 
+Exercise documents keep JSON minimal. Supermentor infers default English action labels such as "I'm struggling" and "Review my attempt". Lesson authors should describe tasks, constraints, references, and success criteria instead of hardcoding UI labels. Reviewing an attempt is the completion checkpoint for a step. Existing inline comments and answers should be preserved when a lesson is updated.
+
 ## Browser protocol
 
-The browser companion uses a file-based side-thread protocol. The server writes `question.json`, emits an `inline-question` event, waits for the harness adapter to acknowledge delivery, and then polls for the agent's `reply.json`.
+The browser companion uses a file-based side-thread protocol. The server writes `question.json`, emits an `inline-question` or `agent-action` event, waits for the harness adapter to acknowledge delivery, and then polls for the agent's `reply.json`.
 
 A harness adapter that wants browser support must:
 
-1. read `server-started` and `inline-question` JSON events from stdout;
-2. inject inline questions into the active agent context;
+1. read `server-started`, `inline-question`, and `agent-action` JSON events from stdout;
+2. inject browser questions/actions into the active agent context;
 3. write `supermentor-ack` JSON lines to stdin; and
 4. tell the agent to answer by writing the requested `reply.json` file.
 
@@ -158,7 +162,7 @@ Manual server mode prints a `server-started` JSON event with the URL, session id
 
 ## Credits
 
-Supermentor is heavily inspired by [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent (`@obra`), especially its skill-first approach and local harness installation patterns.
+Supermentor is inspired by [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent (`@obra`), especially its skill-first approach and local harness installation patterns.
 
 ## License
 
