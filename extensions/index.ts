@@ -131,11 +131,12 @@ export default function supermentorExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "supermentor_start",
 		label: "Supermentor Start",
-		description: "Start or reuse the integrated Supermentor browser companion for a learning session.",
-		promptSnippet: "Start or reuse the Supermentor browser companion and return its URL/session directory.",
+		description: "Start or reuse the integrated Supermentor browser companion for a teaching or learning session.",
+		promptSnippet: "Start or reuse the Supermentor teaching companion and return its URL/session directory.",
 		promptGuidelines: [
-			"Use supermentor_start when a learning request is broad enough that a browser lesson would be easier to follow than a long terminal response.",
-			"Use supermentor_start when the user asks to start the Supermentor server, open the browser companion, or make the lesson commentable.",
+			"Use supermentor_start only for teaching/learning sessions: guided learning, code dissection, codebase tours, exercises, or pedagogical walkthroughs.",
+			"Do not use Supermentor as a generic visual/design/brainstorming companion. For product design brainstorming, use chat or the appropriate design workflow unless the user explicitly asks to open Supermentor.",
+			"Use supermentor_start when the user explicitly asks to start the Supermentor server, open Supermentor, or make a learning lesson commentable.",
 			"Do not start Supermentor manually with bash in Pi; use supermentor_start so inline browser questions can route back into the active session.",
 		],
 		parameters: {

@@ -101,7 +101,7 @@ After installing in Pi, the agent can start the browser companion with `supermen
 /supermentor-stop
 ```
 
-Use the browser companion for long walkthroughs, code anchors, inline comments, and longer exercise paths. It displays learning material and side-thread questions; it is not a coding environment. Learners still write code in their IDE or current codebase. A running browser session is updated by rewriting `lesson.json`; it does not need to be restarted for each exercise.
+Use the browser companion for long teaching walkthroughs, code anchors, inline comments, and longer exercise paths. It displays learning material and side-thread questions; it is not a coding environment, generic design canvas, or product-brainstorming surface. Learners still write code in their IDE or current codebase. A running browser session is updated by rewriting `lesson.json`; it does not need to be restarted for each exercise.
 
 For short explanations, or in clients without a supported browser bridge, use chat. In Pi, prefer the integrated tool or command over launching `server.cjs` manually. Manual server startup displays lessons but cannot route inline browser questions back into the active agent session.
 

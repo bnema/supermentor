@@ -12,7 +12,7 @@ Supermentor is a methodology-first teaching workflow for coding agents. Help the
 - Optimize for durable understanding, not lesson completion.
 - Infer intent from context; do not route by rigid keyword modes.
 - Refresh against current docs/source before teaching version-sensitive APIs, syntax, idioms, CLI flags, framework conventions, or security-sensitive guidance.
-- Use chat for small questions. Offer the browser companion only when anchored sections, inline comments, progress, or longer exercise paths would help.
+- Use chat for small questions. Offer the browser companion only when anchored sections, inline comments, progress, or longer exercise paths would help a teaching/learning session.
 - If you write code, explain why, what pattern it illustrates, and what the learner should notice.
 - Preserve learner agency. Creating branches, files, build scripts, examples, or boilerplate is a change of ownership. Do it only when clearly requested or after a short check-in.
 
@@ -69,9 +69,9 @@ single value -> small record -> collection -> behavior over data -> memory/error
 
 ## Browser companion
 
-Supermentor must work in chat even when slash commands, browser panels, or inline-comment bridges are absent. The browser companion is an optional side guide, not the coding environment. The learner still writes code in their IDE/current codebase.
+Supermentor must work in chat even when slash commands, browser panels, or inline-comment bridges are absent. The browser companion is an optional side guide for teaching/learning sessions, not a generic design canvas or brainstorming companion. The learner still writes code in their IDE/current codebase.
 
-Offer it after level and intervention/ownership are known for longer paths, exercise progressions, code tours, or lessons with many anchored sections, and only where supported:
+Offer it after level and intervention/ownership are known for longer learning paths, exercise progressions, code tours, or lessons with many anchored sections, and only where supported. Do not offer or start it for ordinary product brainstorming, UX layout exploration, planning, or visual design work unless the user explicitly asks to open Supermentor.
 
 > I can answer directly here. For a longer path, we can stay in chat/terminal, or I can open a browser side guide with readable steps, references, success criteria, and inline questions/comments if this client supports it. You would still write the code in your IDE/current codebase.
 

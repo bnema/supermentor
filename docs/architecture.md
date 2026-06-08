@@ -146,7 +146,7 @@ This means Supermentor docs and skills must not require commands such as `/super
 
 ## Browser companion offer
 
-The browser companion is an optional side guide, not a coding environment and not a separate learning mode. It can show readable steps, references, success criteria, inline questions/comments, and action callbacks while the learner writes code in their IDE/current codebase. A running session is updated by rewriting `lesson.json`; the server should not be restarted for each exercise.
+The browser companion is an optional side guide for teaching/learning sessions, not a coding environment, generic design canvas, product-brainstorming surface, or separate learning mode. It can show readable steps, references, success criteria, inline questions/comments, and action callbacks while the learner writes code in their IDE/current codebase. A running session is updated by rewriting `lesson.json`; the server should not be restarted for each exercise.
 
 Do not push the browser companion by default. For longer exercise paths, ask whether the learner wants chat/terminal or the browser side guide. Offer it only when useful and supported by the current client:
 
